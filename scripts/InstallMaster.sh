@@ -5,7 +5,7 @@ sudo systemctl disable firewalld
 sudo service firewalld stop
 sudo setenforce 0
 enabled=0
-sudo sed -i '1i10.0.0.2   master\n10.0.0.3   worker1\n10.0.0.4   worker2\n10.0.0.5   worker3' /etc/hosts
+sudo sed -i '1i10.0.0.2   master.cdp\n10.0.0.3   node1.cdp\n10.0.0.4   node2.cdp\n10.0.0.5   node3.cdp' /etc/hosts
 echo "${public_ssh_key}" >> ~/.ssh/authorized_keys
 sudo chmod 700 /root/.ssh
 sudo chmod 600 /root/.ssh/authorized_keys

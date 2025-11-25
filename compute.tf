@@ -1,7 +1,7 @@
 # Master
 resource "oci_core_instance" "Master" {
   
-  display_name = "Master"
+  display_name = "master.cdp"
   availability_domain = data.oci_identity_availability_domains.ads.availability_domains[0].name
   compartment_id = var.compartment_ocid 
   
@@ -25,8 +25,13 @@ resource "oci_core_instance" "Master" {
 
   metadata = {
     ssh_authorized_keys = var.generate_public_ssh_key ? tls_private_key.compute_ssh_key.public_key_openssh : var.public_ssh_key
-     user_data = var.installAmbari ? base64encode(templatefile("scripts/InstallMaster.sh",  
-                                           {public_ssh_key = tls_private_key.compute_ssh_key.public_key_openssh})) : ""
+    user_data = var.installAmbari ? base64encode(templatefile("cloud-init/master.yaml",  {
+      private_key_pem_b64 = base64encode(tls_private_key.compute_ssh_key.private_key_pem),
+      hg1 = "master.cdp",
+      hg2 = "node1.cdp",
+      hg3 = "node2.cdp",
+      hg4 = "node3.cdp"
+    })) : ""
   }
   
   shape_config {
@@ -42,9 +47,9 @@ resource "oci_core_instance" "Master" {
 }
 
 # Worker 1
-resource "oci_core_instance" "Worker1" {
+resource "oci_core_instance" "Node1" {
   
-  display_name = "Worker1"
+  display_name = "node1.cdp"
   availability_domain = data.oci_identity_availability_domains.ads.availability_domains[0].name
   compartment_id = var.compartment_ocid 
   
@@ -68,8 +73,12 @@ resource "oci_core_instance" "Worker1" {
 
   metadata = {
     ssh_authorized_keys = var.generate_public_ssh_key ? tls_private_key.compute_ssh_key.public_key_openssh : var.public_ssh_key
-     user_data = var.installAmbari ? base64encode(templatefile("scripts/InstallWorker.sh",  
-                                           {public_ssh_key = tls_private_key.compute_ssh_key.public_key_openssh})) : ""
+    user_data = var.installAmbari ? base64encode(templatefile("cloud-init/worker.yaml",  {
+      hg1 = "master.cdp",
+      hg2 = "node1.cdp",
+      hg3 = "node2.cdp",
+      hg4 = "node3.cdp"
+    })) : ""
   }
   
   shape_config {
@@ -85,9 +94,9 @@ resource "oci_core_instance" "Worker1" {
 }
 
 # Worker 2
-resource "oci_core_instance" "Worker2" {
+resource "oci_core_instance" "Node2" {
   
-  display_name = "Worker2"
+  display_name = "node2.cdp"
   availability_domain = data.oci_identity_availability_domains.ads.availability_domains[0].name
   compartment_id = var.compartment_ocid 
   
@@ -111,8 +120,12 @@ resource "oci_core_instance" "Worker2" {
 
   metadata = {
     ssh_authorized_keys = var.generate_public_ssh_key ? tls_private_key.compute_ssh_key.public_key_openssh : var.public_ssh_key
-     user_data = var.installAmbari ? base64encode(templatefile("scripts/InstallWorker.sh",  
-                                           {public_ssh_key = tls_private_key.compute_ssh_key.public_key_openssh})) : ""
+    user_data = var.installAmbari ? base64encode(templatefile("cloud-init/worker.yaml",  {
+      hg1 = "master.cdp",
+      hg2 = "node1.cdp",
+      hg3 = "node2.cdp",
+      hg4 = "node3.cdp"
+    })) : ""
   }
   
   shape_config {
@@ -128,9 +141,9 @@ resource "oci_core_instance" "Worker2" {
 }
 
 # Worker 3
-resource "oci_core_instance" "Worker3" {
+resource "oci_core_instance" "Node3" {
   
-  display_name = "Worker3"
+  display_name = "node3.cdp"
   availability_domain = data.oci_identity_availability_domains.ads.availability_domains[0].name
   compartment_id = var.compartment_ocid 
   
@@ -154,8 +167,12 @@ resource "oci_core_instance" "Worker3" {
 
   metadata = {
     ssh_authorized_keys = var.generate_public_ssh_key ? tls_private_key.compute_ssh_key.public_key_openssh : var.public_ssh_key
-    user_data = var.installAmbari ? base64encode(templatefile("scripts/InstallWorker.sh",  
-                                           {public_ssh_key = tls_private_key.compute_ssh_key.public_key_openssh})) : ""
+    user_data = var.installAmbari ? base64encode(templatefile("cloud-init/worker.yaml",  {
+      hg1 = "master.cdp",
+      hg2 = "node1.cdp",
+      hg3 = "node2.cdp",
+      hg4 = "node3.cdp"
+    })) : ""
   }
   
   shape_config {
