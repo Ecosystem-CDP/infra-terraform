@@ -8,7 +8,7 @@ packages:
   - chrony
 
 write_files:
-  - path: /root/.ssh/ansible_id_rsa
+  - path: /root/.ssh/id_rsa
     permissions: '0600'
     owner: root:root
     encoding: b64
@@ -30,6 +30,7 @@ write_files:
       inventory = /etc/ansible/hosts
       retry_files_enabled = False
       deprecation_warnings = False
+      log_path = /var/log/ansible/ansible.log
 
   - path: /etc/ansible/hosts
     permissions: '0644'
@@ -54,6 +55,12 @@ write_files:
       - name: Common config for all nodes
         hosts: all
         become: yes
+        gather_facts: false
+        pre_tasks:
+          - name: Ensure python3 exists on targets (raw bootstrap)
+            ansible.builtin.raw: |
+              test -x /usr/bin/python3 || (command -v dnf >/dev/null && sudo dnf -y install python3 || sudo yum -y install python3)
+            changed_when: false
         vars:
           hosts_lines:
             - "10.0.0.2   master.cdp"
@@ -115,6 +122,7 @@ write_files:
       - name: Ambari repos and agent on all nodes
         hosts: all
         become: yes
+        gather_facts: false
         tasks:
           - name: Import Jenkins GPG key (used by repo)
             ansible.builtin.get_url:
@@ -148,6 +156,7 @@ write_files:
       - name: Configure master node
         hosts: master
         become: yes
+        gather_facts: false
         tasks:
           - name: Install server deps
             ansible.builtin.yum:
@@ -243,6 +252,7 @@ write_files:
       - name: Configure workers
         hosts: workers
         become: yes
+        gather_facts: false
         tasks:
           - name: Install odp-select and ambari-agent
             ansible.builtin.yum:
@@ -264,7 +274,40 @@ write_files:
               state: started
               enabled: yes
 
+  - path: /root/run-ansible.sh
+    permissions: '0755'
+    owner: root:root
+    content: |
+      #!/usr/bin/env bash
+      set -Eeuo pipefail
+      KEY=/root/.ssh/ansible_id_rsa
+      HOSTS=(node1.cdp node2.cdp node3.cdp)
+      echo "[run-ansible] Preparando log do Ansible..."
+      mkdir -p /var/log/ansible || true
+      chmod 755 /var/log/ansible || true
+      echo "[run-ansible] Aguardando SSH dos workers..."
+      for h in "$${HOSTS[@]}"; do
+        echo "[run-ansible] Esperando $h:22 ficar disponível"
+        # espera a porta 22 responder por até 15 minutos
+        for i in $(seq 1 90); do
+          if timeout 3 bash -lc "</dev/tcp/$h/22" 2>/dev/null; then
+            break
+          fi
+          sleep 10
+        done
+        # testa SSH sem checagem de hostkey
+        for i in $(seq 1 30); do
+          if ssh -i "$KEY" -o StrictHostKeyChecking=no -o ConnectTimeout=5 opc@"$h" echo ok 2>/dev/null; then
+            break
+          fi
+          sleep 5
+        done
+      done
+      echo "[run-ansible] Executando playbook..."
+      ANSIBLE_NOCOLOR=1 ansible-playbook /root/site.yml
+
 runcmd:
   - [ sh, -lc, "systemctl enable chronyd && systemctl start chronyd" ]
+  - [ sh, -lc, "mkdir -p /var/log/ansible && chmod 755 /var/log/ansible" ]
   - [ sh, -lc, "python3 -m pip install --upgrade pip ansible" ]
-  - [ sh, -lc, "ANSIBLE_NOCOLOR=1 ansible-playbook /root/site.yml" ]
+  - [ sh, -lc, "/root/run-ansible.sh" ]
