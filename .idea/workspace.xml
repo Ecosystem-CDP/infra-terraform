@@ -5,7 +5,8 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="b2fcbc61-7bea-417b-809b-7ec12b3345b2" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/cloud-init/master.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/cloud-init/master.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/compute.tf" beforeDir="false" afterPath="$PROJECT_DIR$/compute.tf" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
