@@ -24,7 +24,7 @@ resource "oci_core_instance" "Master" {
   shape = var.instance_shape
 
   metadata = {
-    ssh_authorized_keys = var.generate_public_ssh_key ? tls_private_key.compute_ssh_key.public_key_openssh : var.public_ssh_key
+    ssh_authorized_keys = var.generate_public_ssh_key ? tls_private_key.compute_ssh_key.public_key_openssh : "${var.public_ssh_key}\n${tls_private_key.compute_ssh_key.public_key_openssh}"
     user_data = var.installAmbari ? base64encode(templatefile("cloud-init/master.yaml",  {
       private_key_pem_b64 = base64encode(tls_private_key.compute_ssh_key.private_key_pem),
       hg1 = "master.cdp",
@@ -72,7 +72,7 @@ resource "oci_core_instance" "Node1" {
   shape = var.instance_shape
 
   metadata = {
-    ssh_authorized_keys = var.generate_public_ssh_key ? tls_private_key.compute_ssh_key.public_key_openssh : var.public_ssh_key
+    ssh_authorized_keys = var.generate_public_ssh_key ? tls_private_key.compute_ssh_key.public_key_openssh : "${var.public_ssh_key}\n${tls_private_key.compute_ssh_key.public_key_openssh}"
     user_data = var.installAmbari ? base64encode(templatefile("cloud-init/worker.yaml",  {
       hg1 = "master.cdp",
       hg2 = "node1.cdp",
@@ -119,7 +119,7 @@ resource "oci_core_instance" "Node2" {
   shape = var.instance_shape
 
   metadata = {
-    ssh_authorized_keys = var.generate_public_ssh_key ? tls_private_key.compute_ssh_key.public_key_openssh : var.public_ssh_key
+    ssh_authorized_keys = var.generate_public_ssh_key ? tls_private_key.compute_ssh_key.public_key_openssh : "${var.public_ssh_key}\n${tls_private_key.compute_ssh_key.public_key_openssh}"
     user_data = var.installAmbari ? base64encode(templatefile("cloud-init/worker.yaml",  {
       hg1 = "master.cdp",
       hg2 = "node1.cdp",
@@ -166,7 +166,7 @@ resource "oci_core_instance" "Node3" {
   shape = var.instance_shape
 
   metadata = {
-    ssh_authorized_keys = var.generate_public_ssh_key ? tls_private_key.compute_ssh_key.public_key_openssh : var.public_ssh_key
+    ssh_authorized_keys = var.generate_public_ssh_key ? tls_private_key.compute_ssh_key.public_key_openssh : "${var.public_ssh_key}\n${tls_private_key.compute_ssh_key.public_key_openssh}"
     user_data = var.installAmbari ? base64encode(templatefile("cloud-init/worker.yaml",  {
       hg1 = "master.cdp",
       hg2 = "node1.cdp",
