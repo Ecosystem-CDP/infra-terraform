@@ -46,7 +46,7 @@ write_files:
       [all:vars]
       ansible_user=opc
       ansible_become=True
-      ansible_ssh_private_key_file=/root/.ssh/ansible_id_rsa
+      ansible_ssh_private_key_file=/root/.ssh/id_rsa
 
   - path: /root/site.yml
     permissions: '0644'
@@ -280,7 +280,7 @@ write_files:
     content: |
       #!/usr/bin/env bash
       set -Eeuo pipefail
-      KEY=/root/.ssh/ansible_id_rsa
+      KEY=/root/.ssh/id_rsa
       HOSTS=(node1.cdp node2.cdp node3.cdp)
       echo "[run-ansible] Preparando log do Ansible..."
       mkdir -p /var/log/ansible || true
