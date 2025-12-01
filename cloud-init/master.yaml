@@ -1,313 +1,314 @@
 #cloud-config
 package_update: true
 packages:
-  - git
-  - python3
-  - python3-pip
-  - openssh-clients
-  - chrony
+- git
+- python3
+- python3-pip
+- openssh-clients
+- chrony
 
 write_files:
-  - path: /root/.ssh/id_rsa
-    permissions: '0600'
-    owner: root:root
-    encoding: b64
-    content: ${private_key_pem_b64}
+- path: /root/.ssh/id_rsa
+  permissions: '0600'
+  owner: root:root
+  encoding: b64
+  content: ${private_key_pem_b64}
 
-  - path: /etc/hosts
-    append: true
-    content: |
-      10.0.0.2   ${hg1}
-      10.0.0.3   ${hg2}
-      10.0.0.4   ${hg3}
-      10.0.0.5   ${hg4}
+- path: /etc/hosts
+  append: true
+  content: |
+    10.0.0.2   ${hg1}
+    10.0.0.3   ${hg2}
+    10.0.0.4   ${hg3}
+    10.0.0.5   ${hg4}
 
-  - path: /etc/ansible/ansible.cfg
-    permissions: '0644'
-    content: |
-      [defaults]
-      host_key_checking = False
-      inventory = /etc/ansible/hosts
-      retry_files_enabled = False
-      deprecation_warnings = False
-      log_path = /var/log/ansible/ansible.log
+- path: /etc/ansible/ansible.cfg
+  permissions: '0644'
+  content: |
+    [defaults]
+    host_key_checking = False
+    inventory = /etc/ansible/hosts
+    retry_files_enabled = False
+    deprecation_warnings = False
+    log_path = /var/log/ansible/ansible.log
 
-  - path: /etc/ansible/hosts
-    permissions: '0644'
-    content: |
-      [master]
-      master.cdp
+- path: /etc/ansible/hosts
+  permissions: '0644'
+  content: |
+    [master]
+    master.cdp
 
-      [workers]
-      node1.cdp
-      node2.cdp
-      node3.cdp
+    [workers]
+    node1.cdp
+    node2.cdp
+    node3.cdp
 
-      [all:vars]
-      ansible_user=opc
-      ansible_become=True
-      ansible_ssh_private_key_file=/root/.ssh/id_rsa
+    [all:vars]
+    ansible_user=opc
+    ansible_become=True
+    ansible_ssh_private_key_file=/root/.ssh/id_rsa
 
-  - path: /root/site.yml
-    permissions: '0644'
-    content: |
-      ---
-      - name: Common config for all nodes
-        hosts: all
-        become: yes
-        gather_facts: false
-        pre_tasks:
-          - name: Ensure python3 exists on targets (raw bootstrap)
-            ansible.builtin.raw: |
-              test -x /usr/bin/python3 || (command -v dnf >/dev/null && sudo dnf -y install python3 || sudo yum -y install python3)
-            changed_when: false
-        vars:
-          hosts_lines:
-            - "10.0.0.2   master.cdp"
-            - "10.0.0.3   node1.cdp"
-            - "10.0.0.4   node2.cdp"
-            - "10.0.0.5   node3.cdp"
-        tasks:
-          - name: Disable SELinux (runtime)
-            command: setenforce 0
-            failed_when: false
-            changed_when: false
+- path: /root/site.yml
+  permissions: '0644'
+  content: |
+    ---
+    - name: Common config for all nodes
+      hosts: all
+      become: yes
+      gather_facts: false
+      pre_tasks:
+        - name: Ensure python3 exists on targets (raw bootstrap)
+          ansible.builtin.raw: |
+            test -x /usr/bin/python3 || (command -v dnf >/dev/null && sudo dnf -y install python3 || sudo yum -y install python3)
+          changed_when: false
+      vars:
+        hosts_lines:
+          - "10.0.0.2   master.cdp"
+          - "10.0.0.3   node1.cdp"
+          - "10.0.0.4   node2.cdp"
+          - "10.0.0.5   node3.cdp"
+      tasks:
+        - name: Disable SELinux (runtime)
+          command: setenforce 0
+          failed_when: false
+          changed_when: false
 
-          - name: Ensure SELinux disabled persistently
-            ansible.builtin.replace:
-              path: /etc/selinux/config
-              regexp: '^SELINUX=.*'
-              replace: 'SELINUX=disabled'
+        - name: Ensure SELinux disabled persistently
+          ansible.builtin.replace:
+            path: /etc/selinux/config
+            regexp: '^SELINUX=.*'
+            replace: 'SELINUX=disabled'
 
-          - name: Stop and disable firewalld
-            ansible.builtin.service:
-              name: firewalld
-              state: stopped
-              enabled: no
+        - name: Stop and disable firewalld
+          ansible.builtin.service:
+            name: firewalld
+            state: stopped
+            enabled: no
 
-          - name: Ensure packages present
-            ansible.builtin.yum:
-              name:
-                - curl
-                - unzip
-                - tar
-                - wget
-                - sed
-                - gcc
-                - openssl-devel
-                - openssl
-                - krb5-workstation
-                - krb5-libs
-                - python3
-                - java-1.8.0-openjdk-devel
-                - snappy
-                - openssh-server
-                - openssh-clients
-              state: present
-              update_cache: yes
+        - name: Ensure packages present
+          ansible.builtin.yum:
+            name:
+              - curl
+              - unzip
+              - tar
+              - wget
+              - sed
+              - gcc
+              - openssl-devel
+              - openssl
+              - krb5-workstation
+              - krb5-libs
+              - python3
+              - java-1.8.0-openjdk-devel
+              - snappy
+              - openssh-server
+              - openssh-clients
+            state: present
+            update_cache: yes
 
-          - name: Ensure chronyd enabled and running
-            ansible.builtin.service:
-              name: chronyd
-              state: started
-              enabled: yes
+        - name: Ensure chronyd enabled and running
+          ansible.builtin.service:
+            name: chronyd
+            state: started
+            enabled: yes
 
-          - name: Ensure /etc/hosts has cluster FQDNs
-            ansible.builtin.blockinfile:
-              path: /etc/hosts
-              block: |
-                {{ hosts_lines | join('\n') }}
-              marker: "# {mark} CDP_CLUSTER_HOSTS"
+        - name: Ensure /etc/hosts has cluster FQDNs
+          ansible.builtin.blockinfile:
+            path: /etc/hosts
+            block: |
+              {{ hosts_lines | join('\n') }}
+            marker: "# {mark} CDP_CLUSTER_HOSTS"
 
-      - name: Ambari repos and agent on all nodes
-        hosts: all
-        become: yes
-        gather_facts: false
-        tasks:
-          - name: Import Jenkins GPG key (used by repo)
-            ansible.builtin.get_url:
-              url: https://clemlabs.s3.eu-west-3.amazonaws.com/RPM-GPG-KEY-SHA256-Jenkins
-              dest: /tmp/RPM-GPG-KEY-SHA256-Jenkins
-          - name: rpm --import jenkins gpg key
-            ansible.builtin.command: rpm --import /tmp/RPM-GPG-KEY-SHA256-Jenkins
-            changed_when: false
+    - name: Ambari repos and agent on all nodes
+      hosts: all
+      become: yes
+      gather_facts: false
+      tasks:
+        - name: Import Jenkins GPG key (used by repo)
+          ansible.builtin.get_url:
+            url: https://clemlabs.s3.eu-west-3.amazonaws.com/RPM-GPG-KEY-SHA256-Jenkins
+            dest: /tmp/RPM-GPG-KEY-SHA256-Jenkins
+        - name: rpm --import jenkins gpg key
+          ansible.builtin.command: rpm --import /tmp/RPM-GPG-KEY-SHA256-Jenkins
+          changed_when: false
 
-          - name: Install ODP repo
-            ansible.builtin.get_url:
-              url: https://clemlabs.s3.eu-west-3.amazonaws.com/centos9-aarch64/odp-release/1.2.2.0-128/odp.repo
-              dest: /etc/yum.repos.d/odp.repo
+        - name: Install ODP repo
+          ansible.builtin.get_url:
+            url: https://clemlabs.s3.eu-west-3.amazonaws.com/centos9-aarch64/odp-release/1.2.2.0-128/odp.repo
+            dest: /etc/yum.repos.d/odp.repo
 
-          - name: Install Ambari repo
-            ansible.builtin.get_url:
-              url: https://clemlabs.s3.eu-west-3.amazonaws.com/centos9-aarch64/ambari-release/2.7.9.0.0-61/ambari.repo
-              dest: /etc/yum.repos.d/ambari.repo
+        - name: Install Ambari repo
+          ansible.builtin.get_url:
+            url: https://clemlabs.s3.eu-west-3.amazonaws.com/centos9-aarch64/ambari-release/2.7.9.0.0-61/ambari.repo
+            dest: /etc/yum.repos.d/ambari.repo
 
-          - name: Update packages
-            ansible.builtin.yum:
-              name: '*'
-              state: latest
-              update_cache: yes
+        - name: Update packages
+          ansible.builtin.yum:
+            name: '*'
+            state: latest
+            update_cache: yes
 
-          - name: Install ambari-agent (all nodes)
-            ansible.builtin.yum:
-              name: ambari-agent.aarch64
-              state: present
+        - name: Install ambari-agent (all nodes)
+          ansible.builtin.yum:
+            name: ambari-agent.aarch64
+            state: present
 
-      - name: Configure master node
-        hosts: master
-        become: yes
-        gather_facts: false
-        tasks:
-          - name: Install server deps
-            ansible.builtin.yum:
-              name:
-                - odp-select.aarch64
-                - ambari-server.aarch64
-                - postgresql-server
-                - postgresql-contrib
-              state: present
+    - name: Configure master node
+      hosts: master
+      become: yes
+      gather_facts: false
+      tasks:
+        - name: Install server deps
+          ansible.builtin.yum:
+            name:
+              - odp-select.aarch64
+              - ambari-server.aarch64
+              - postgresql-server
+              - postgresql-contrib
+            state: present
 
-          - name: Initialize PostgreSQL if needed
-            ansible.builtin.shell: |
-              if [ ! -d /var/lib/pgsql/data/base ]; then
-                postgresql-setup --initdb || true
-              fi
-            args:
-              executable: /bin/bash
+        - name: Initialize PostgreSQL if needed
+          ansible.builtin.shell: |
+            if [ ! -d /var/lib/pgsql/data/base ]; then
+              postgresql-setup --initdb || true
+            fi
+          args:
+            executable: /bin/bash
 
-          - name: Ambari server setup (non-interactive)
-            ansible.builtin.command:
-              argv: ["ambari-server", "setup", "-j", "/usr/lib/jvm/java-1.8.0-openjdk"]
-            register: ambari_setup
-            changed_when: ambari_setup.rc == 0
-            failed_when: ambari_setup.rc not in [0]
+        - name: Ambari server setup (non-interactive)
+          ansible.builtin.command:
+            argv: ["ambari-server", "setup", "-s", "-j", "/usr/lib/jvm/java-1.8.0-openjdk"]
+          register: ambari_setup
+          changed_when: ambari_setup.rc == 0
+          failed_when: ambari_setup.rc not in [0]
 
-          - name: Start ambari-server
-            ansible.builtin.service:
-              name: ambari-server
-              state: started
-              enabled: yes
+        - name: Start ambari-server
+          ansible.builtin.service:
+            name: ambari-server
+            state: started
+            enabled: yes
 
-          - name: Start ambari-agent (master)
-            ansible.builtin.service:
-              name: ambari-agent
-              state: started
-              enabled: yes
+        - name: Start ambari-agent (master)
+          ansible.builtin.service:
+            name: ambari-agent
+            state: started
+            enabled: yes
 
-          - name: Create console user and set password
-            ansible.builtin.user:
-              name: console
-              groups: wheel
-              append: yes
-              state: present
-          - name: Set console password
-            ansible.builtin.shell: echo 'console:1aB@2bC#' | chpasswd
+        - name: Create console user and set password
+          ansible.builtin.user:
+            name: console
+            groups: wheel
+            append: yes
+            state: present
+        - name: Set console password
+          ansible.builtin.shell: echo 'console:1aB@2bC#' | chpasswd
 
-          - name: Append environment variables to root .bashrc
-            ansible.builtin.blockinfile:
-              path: /root/.bashrc
-              marker: "# {mark} ODP_EXPORTS"
-              block: |
-                export ZOOKEEPER_HOME="/usr/odp/1.2.2.0-128/zookeeper"
-                export PATH=$PATH:$ZOOKEEPER_HOME/bin
-                export KAFKA_HOME="/usr/odp/1.2.2.0-128/kafka"
-                export PATH=$PATH:$KAFKA_HOME/bin
-                export NIFI_HOME="/usr/odp/1.2.2.0-128/nifi"
-                export PATH=$PATH:$NIFI_HOME/bin
-                export SPARK_HOME="/usr/odp/1.2.2.0-128/spark3"
-                export PATH=$PATH:$SPARK_HOME/bin
-                export HIVE_HOME="/usr/odp/1.2.2.0-128/hive"
-                export PATH=$PATH:$HIVE_HOME/bin
+        - name: Append environment variables to root .bashrc
+          ansible.builtin.blockinfile:
+            path: /root/.bashrc
+            marker: "# {mark} ODP_EXPORTS"
+            block: |
+              export ZOOKEEPER_HOME="/usr/odp/1.2.2.0-128/zookeeper"
+              export PATH=$PATH:$ZOOKEEPER_HOME/bin
+              export KAFKA_HOME="/usr/odp/1.2.2.0-128/kafka"
+              export PATH=$PATH:$KAFKA_HOME/bin
+              export NIFI_HOME="/usr/odp/1.2.2.0-128/nifi"
+              export PATH=$PATH:$NIFI_HOME/bin
+              export SPARK_HOME="/usr/odp/1.2.2.0-128/spark3"
+              export PATH=$PATH:$SPARK_HOME/bin
+              export HIVE_HOME="/usr/odp/1.2.2.0-128/hive"
+              export PATH=$PATH:$HIVE_HOME/bin
 
-          - name: Create hdfscorrections.sh
-            ansible.builtin.copy:
-              dest: /root/hdfscorrections.sh
-              mode: '0755'
-              content: |
-                #!/bin/bash
-                ambari-server stop
-                sudo -u hdfs hdfs dfs -chown root:root /odp/apps/1.2.2.0-128/hbase
-                sudo -u hdfs hdfs dfs -chmod 755 /odp/apps/1.2.2.0-128/hbase
-                sudo -u hdfs hdfs dfs -put /var/lib/ambari-agent/tmp/yarn-ats/1.2.2.0-128/hbase.tar.gz /odp/apps/1.2.2.0-128/hbase/
-                sudo -u hdfs hdfs dfs -chmod 555 /odp/apps/1.2.2.0-128/hbase
-                ambari-server restart
+        - name: Create hdfscorrections.sh
+          ansible.builtin.copy:
+            dest: /root/hdfscorrections.sh
+            mode: '0755'
+            content: |
+              #!/bin/bash
+              ambari-server stop
+              sudo -u hdfs hdfs dfs -chown root:root /odp/apps/1.2.2.0-128/hbase
+              sudo -u hdfs hdfs dfs -chmod 755 /odp/apps/1.2.2.0-128/hbase
+              sudo -u hdfs hdfs dfs -put /var/lib/ambari-agent/tmp/yarn-ats/1.2.2.0-128/hbase.tar.gz /odp/apps/1.2.2.0-128/hbase/
+              sudo -u hdfs hdfs dfs -chmod 555 /odp/apps/1.2.2.0-128/hbase
+              ambari-server restart
 
-          - name: Create hivesetup.sh
-            ansible.builtin.copy:
-              dest: /root/hivesetup.sh
-              mode: '0755'
-              content: |
-                #!/bin/bash
-                ambari-server stop
-                sed -i "s/^#port = 5432/port = 5432/" /var/lib/pgsql/data/postgresql.conf
-                echo "host all hive 10.0.0.2/32 trust" | tee -a /var/lib/pgsql/data/pg_hba.conf
-                sudo -u postgres psql -U postgres -c "CREATE DATABASE hive;" || true
-                sudo -u postgres psql -U postgres -c "CREATE USER hive WITH PASSWORD 'hive';" || true
-                sudo -u postgres psql -U postgres -c "GRANT ALL PRIVILEGES ON DATABASE hive TO hive;" || true
-                systemctl restart postgresql
-                yum install -y postgresql-jdbc.noarch
-                ambari-server setup -j /usr/lib/jvm/java-1.8.0-openjdk --jdbc-db=postgres --jdbc-driver=/usr/share/java/postgresql-jdbc.jar
-                ambari-server start
+        - name: Create hivesetup.sh
+          ansible.builtin.copy:
+            dest: /root/hivesetup.sh
+            mode: '0755'
+            content: |
+              #!/bin/bash
+              ambari-server stop
+              sed -i "s/^#port = 5432/port = 5432/" /var/lib/pgsql/data/postgresql.conf
+              echo "host all hive 10.0.0.2/32 trust" | tee -a /var/lib/pgsql/data/pg_hba.conf
+              sudo -u postgres psql -U postgres -c "CREATE DATABASE hive;" || true
+              sudo -u postgres psql -U postgres -c "CREATE USER hive WITH PASSWORD 'hive';" || true
+              sudo -u postgres psql -U postgres -c "GRANT ALL PRIVILEGES ON DATABASE hive TO hive;" || true
+              systemctl restart postgresql
+              yum install -y postgresql-jdbc.noarch
+              ambari-server setup -j /usr/lib/jvm/java-1.8.0-openjdk --jdbc-db=postgres --jdbc-driver=/usr/share/java/postgresql-jdbc.jar
+              ambari-server start
 
-      - name: Configure workers
-        hosts: workers
-        become: yes
-        gather_facts: false
-        tasks:
-          - name: Install odp-select and ambari-agent
-            ansible.builtin.yum:
-              name:
-                - odp-select.aarch64
-                - ambari-agent.aarch64
-              state: present
+    - name: Configure workers
+      hosts: workers
+      become: yes
+      gather_facts: false
+      tasks:
+        - name: Install odp-select and ambari-agent
+          ansible.builtin.yum:
+            name:
+              - odp-select.aarch64
+              - ambari-agent.aarch64
+            state: present
 
-          - name: Point ambari-agent to master
-            ansible.builtin.lineinfile:
-              path: /etc/ambari-agent/conf/ambari-agent.ini
-              regexp: '^hostname='
-              line: 'hostname=master.cdp'
-              create: yes
+        - name: Point ambari-agent to master
+          ansible.builtin.lineinfile:
+            path: /etc/ambari-agent/conf/ambari-agent.ini
+            regexp: '^hostname='
+            line: 'hostname=master.cdp'
+            create: yes
 
-          - name: Ensure ambari-agent is running and enabled
-            ansible.builtin.service:
-              name: ambari-agent
-              state: started
-              enabled: yes
+        - name: Ensure ambari-agent is running and enabled
+          ansible.builtin.service:
+            name: ambari-agent
+            state: started
+            enabled: yes
 
-  - path: /root/run-ansible.sh
-    permissions: '0755'
-    owner: root:root
-    content: |
-      #!/usr/bin/env bash
-      set -Eeuo pipefail
-      KEY=/root/.ssh/id_rsa
-      HOSTS=(node1.cdp node2.cdp node3.cdp)
-      echo "[run-ansible] Preparando log do Ansible..."
-      mkdir -p /var/log/ansible || true
-      chmod 755 /var/log/ansible || true
-      echo "[run-ansible] Aguardando SSH dos workers..."
-      for h in "$${HOSTS[@]}"; do
-        echo "[run-ansible] Esperando $h:22 ficar disponível"
-        # espera a porta 22 responder por até 15 minutos
-        for i in $(seq 1 90); do
-          if timeout 3 bash -lc "</dev/tcp/$h/22" 2>/dev/null; then
-            break
-          fi
-          sleep 10
-        done
-        # testa SSH sem checagem de hostkey
-        for i in $(seq 1 30); do
-          if ssh -i "$KEY" -o StrictHostKeyChecking=no -o ConnectTimeout=5 opc@"$h" echo ok 2>/dev/null; then
-            break
-          fi
-          sleep 5
-        done
+- path: /root/run-ansible.sh
+  permissions: '0755'
+  owner: root:root
+  content: |
+    #!/usr/bin/env bash
+    set -Eeuo pipefail
+    export PATH=$PATH:/usr/local/bin
+    KEY=/root/.ssh/id_rsa
+    HOSTS=(node1.cdp node2.cdp node3.cdp)
+    echo "[run-ansible] Preparando log do Ansible..."
+    mkdir -p /var/log/ansible || true
+    chmod 755 /var/log/ansible || true
+    echo "[run-ansible] Aguardando SSH dos workers..."
+    for h in "$${HOSTS[@]}"; do
+      echo "[run-ansible] Esperando $h:22 ficar disponível"
+      # espera a porta 22 responder por até 15 minutos
+      for i in $(seq 1 90); do
+        if timeout 3 bash -lc "</dev/tcp/$h/22" 2>/dev/null; then
+          break
+        fi
+        sleep 10
       done
-      echo "[run-ansible] Executando playbook..."
-      ANSIBLE_NOCOLOR=1 ansible-playbook /root/site.yml
+      # testa SSH sem checagem de hostkey
+      for i in $(seq 1 30); do
+        if ssh -i "$KEY" -o StrictHostKeyChecking=no -o ConnectTimeout=5 opc@"$h" echo ok 2>/dev/null; then
+          break
+        fi
+        sleep 5
+      done
+    done
+    echo "[run-ansible] Executando playbook..."
+    ANSIBLE_NOCOLOR=1 ansible-playbook /root/site.yml
 
 runcmd:
-  - [ sh, -lc, "systemctl enable chronyd && systemctl start chronyd" ]
-  - [ sh, -lc, "mkdir -p /var/log/ansible && chmod 755 /var/log/ansible" ]
-  - [ sh, -lc, "python3 -m pip install --upgrade pip ansible" ]
-  - [ sh, -lc, "/root/run-ansible.sh" ]
+- [ sh, -lc, "systemctl enable chronyd && systemctl start chronyd" ]
+- [ sh, -lc, "mkdir -p /var/log/ansible && chmod 755 /var/log/ansible" ]
+- [ sh, -lc, "python3 -m pip install --upgrade pip ansible" ]
+- [ sh, -lc, "/root/run-ansible.sh" ]
