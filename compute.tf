@@ -219,11 +219,29 @@ resource "null_resource" "upload_assets" {
     destination = "/tmp/ODP-VDF.xml"
   }
 
+  provisioner "file" {
+    source      = "assets/cluster-template.json"
+    destination = "/tmp/cluster-template.json"
+  }
+
+  provisioner "file" {
+    source      = "assets/cluster_deploy.yml"
+    destination = "/tmp/cluster_deploy.yml"
+  }
+
+  provisioner "file" {
+    source      = "assets/site.yml"
+    destination = "/tmp/site.yml"
+  }
+
   provisioner "remote-exec" {
     inline = [
       "sudo mv /tmp/blueprint.json /root/blueprint.json",
       "sudo mv /tmp/ODP-VDF.xml /root/ODP-VDF.xml",
-      "sudo chown root:root /root/blueprint.json /root/ODP-VDF.xml"
+      "sudo mv /tmp/cluster-template.json /root/cluster-template.json",
+      "sudo mv /tmp/cluster_deploy.yml /root/cluster_deploy.yml",
+      "sudo mv /tmp/site.yml /root/site.yml",
+      "sudo chown root:root /root/blueprint.json /root/ODP-VDF.xml /root/cluster-template.json /root/cluster_deploy.yml /root/site.yml"
     ]
   }
 }
