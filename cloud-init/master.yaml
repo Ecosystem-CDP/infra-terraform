@@ -116,7 +116,9 @@ write_files:
           ansible.builtin.blockinfile:
             path: /etc/hosts
             block: |
-              {{ hosts_lines | join('\n') }}
+              {% for line in hosts_lines %}
+              {{ line }}
+              {% endfor %}
             marker: "# {mark} CDP_CLUSTER_HOSTS"
 
     - name: Ambari repos and agent on all nodes
@@ -267,6 +269,10 @@ write_files:
             regexp: '^hostname='
             line: 'hostname=master.cdp'
             create: yes
+
+        - name: Reload systemd to recognize ambari-agent init script
+          ansible.builtin.command: systemctl daemon-reload
+          changed_when: false
 
         - name: Ensure ambari-agent is running and enabled
           ansible.builtin.service:
