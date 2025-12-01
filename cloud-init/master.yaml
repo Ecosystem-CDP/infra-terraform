@@ -280,6 +280,310 @@ write_files:
             state: started
             enabled: yes
 
+- path: /root/cluster-template.json
+  permissions: '0644'
+  owner: root:root
+  content: |
+    {
+      "blueprint": "odp-blueprint",
+      "default_password": "admin",
+      "host_groups": [
+        {
+          "name": "host_group_1",
+          "hosts": [ { "fqdn": "master.cdp" } ]
+        },
+        {
+          "name": "host_group_2",
+          "hosts": [ { "fqdn": "node1.cdp" } ]
+        },
+        {
+          "name": "host_group_3",
+          "hosts": [ { "fqdn": "node2.cdp" } ]
+        },
+        {
+          "name": "host_group_4",
+          "hosts": [ { "fqdn": "node3.cdp" } ]
+        }
+      ]
+    }
+- path: /root/cluster_deploy.yml
+  permissions: '0644'
+  owner: root:root
+  content: |
+    - name: Deploy Ambari Cluster
+      hosts: localhost
+      gather_facts: no
+      vars:
+        ambari_user: admin
+        ambari_pass: admin
+        ambari_url: http://localhost:8080/api/v1
+        blueprint_file: /root/blueprint.json
+        vdf_file: /root/ODP-VDF.xml
+        cluster_template_file: /root/cluster-template.json
+        cluster_name: odp-cluster
+
+      tasks:
+        - name: Wait for all 4 hosts to be registered
+          uri:
+            url: "{{ ambari_url }}/hosts"
+            user: "{{ ambari_user }}"
+            password: "{{ ambari_pass }}"
+            force_basic_auth: yes
+            return_content: yes
+          register: hosts_response
+          until: hosts_response.json.items | length == 4
+          retries: 60
+          delay: 10
+
+        - name: Register VDF
+          uri:
+            url: "{{ ambari_url }}/version_definitions"
+            method: POST
+            user: "{{ ambari_user }}"
+            password: "{{ ambari_pass }}"
+            force_basic_auth: yes
+            body: "{{ lookup('file', vdf_file) }}"
+            body_format: json
+            status_code: [201, 409]
+          register: vdf_result
+          failed_when: vdf_result.status != 201 and vdf_result.status != 409
+
+        - name: Register Blueprint
+          uri:
+            url: "{{ ambari_url }}/blueprints/odp-blueprint"
+            method: POST
+            user: "{{ ambari_user }}"
+            password: "{{ ambari_pass }}"
+            force_basic_auth: yes
+            body: "{{ lookup('file', blueprint_file) }}"
+            body_format: json
+            status_code: [201, 409]
+
+        - name: Create Cluster
+          uri:
+            url: "{{ ambari_url }}/clusters/{{ cluster_name }}"
+            method: POST
+            user: "{{ ambari_user }}"
+            password: "{{ ambari_pass }}"
+            force_basic_auth: yes
+            body: "{{ lookup('file', cluster_template_file) }}"
+            body_format: json
+            status_code: 202
+          register: cluster_request
+          ignore_errors: yes
+
+        - name: Monitor Cluster Creation
+          uri:
+            url: "{{ cluster_request.json.href }}"
+            user: "{{ ambari_user }}"
+            password: "{{ ambari_pass }}"
+            force_basic_auth: yes
+            return_content: yes
+          register: request_status
+          until: request_status.json.Requests.request_status == 'COMPLETED' or request_status.json.Requests.request_status == 'FAILED'
+          retries: 360
+          delay: 10
+          when: cluster_request.status == 202
+
+        - name: Fail if cluster creation failed
+          fail:
+            msg: "Cluster creation failed. Check Ambari logs."
+          when: cluster_request.status == 202 and request_status.json.Requests.request_status == 'FAILED'
+- path: /root/run-ansible.sh
+  permissions: '0755'
+  owner: root:root
+  content: |
+    #!/usr/bin/env bash
+    set -Eeuo pipefail
+    export PATH=$PATH:/usr/local/bin
+    KEY=/root/.ssh/id_rsa
+    HOSTS=(node1.cdp node2.cdp node3.cdp)
+    echo "[run-ansible] Preparando log do Ansible..."
+    mkdir -p /var/log/ansible || true
+    chmod 755 /var/log/ansible || true
+    echo "[run-ansible] Aguardando SSH dos workers..."
+    for h in "$${HOSTS[@]}"; do
+      echo "[run-ansible] Esperando $h:22 ficar disponível"
+      # espera a porta 22 responder por até 15 minutos
+      for i in $(seq 1 90); do
+        if timeout 3 bash -lc "</dev/tcp/$h/22" 2>/dev/null; then
+          break
+        fi
+        sleep 10
+      done
+      # testa SSH sem checagem de hostkey
+      for i in $(seq 1 30); do
+        if ssh -i "$KEY" -o StrictHostKeyChecking=no -o ConnectTimeout=5 opc@"$h" echo ok 2>/dev/null; then
+              export PATH=$PATH:$HIVE_HOME/bin
+
+        - name: Create hdfscorrections.sh
+          ansible.builtin.copy:
+            dest: /root/hdfscorrections.sh
+            mode: '0755'
+            content: |
+              #!/bin/bash
+              ambari-server stop
+              sudo -u hdfs hdfs dfs -chown root:root /odp/apps/1.2.2.0-128/hbase
+              sudo -u hdfs hdfs dfs -chmod 755 /odp/apps/1.2.2.0-128/hbase
+              sudo -u hdfs hdfs dfs -put /var/lib/ambari-agent/tmp/yarn-ats/1.2.2.0-128/hbase.tar.gz /odp/apps/1.2.2.0-128/hbase/
+              sudo -u hdfs hdfs dfs -chmod 555 /odp/apps/1.2.2.0-128/hbase
+              ambari-server restart
+
+        - name: Create hivesetup.sh
+          ansible.builtin.copy:
+            dest: /root/hivesetup.sh
+            mode: '0755'
+            content: |
+              #!/bin/bash
+              ambari-server stop
+              sed -i "s/^#port = 5432/port = 5432/" /var/lib/pgsql/data/postgresql.conf
+              echo "host all hive 10.0.0.2/32 trust" | tee -a /var/lib/pgsql/data/pg_hba.conf
+              sudo -u postgres psql -U postgres -c "CREATE DATABASE hive;" || true
+              sudo -u postgres psql -U postgres -c "CREATE USER hive WITH PASSWORD 'hive';" || true
+              sudo -u postgres psql -U postgres -c "GRANT ALL PRIVILEGES ON DATABASE hive TO hive;" || true
+              systemctl restart postgresql
+              yum install -y postgresql-jdbc.noarch
+              ambari-server setup -j /usr/lib/jvm/java-1.8.0-openjdk --jdbc-db=postgres --jdbc-driver=/usr/share/java/postgresql-jdbc.jar
+              ambari-server start
+
+    - name: Configure workers
+      hosts: workers
+      become: yes
+      gather_facts: false
+      tasks:
+        - name: Install odp-select and ambari-agent
+          ansible.builtin.yum:
+            name:
+              - odp-select.aarch64
+              - ambari-agent.aarch64
+            state: present
+
+        - name: Point ambari-agent to master
+          ansible.builtin.lineinfile:
+            path: /etc/ambari-agent/conf/ambari-agent.ini
+            regexp: '^hostname='
+            line: 'hostname=master.cdp'
+            create: yes
+
+        - name: Reload systemd to recognize ambari-agent init script
+          ansible.builtin.command: systemctl daemon-reload
+          changed_when: false
+
+        - name: Ensure ambari-agent is running and enabled
+          ansible.builtin.service:
+            name: ambari-agent
+            state: started
+            enabled: yes
+
+- path: /root/cluster-template.json
+  permissions: '0644'
+  owner: root:root
+  content: |
+    {
+      "blueprint": "odp-blueprint",
+      "default_password": "admin",
+      "host_groups": [
+        {
+          "name": "host_group_1",
+          "hosts": [ { "fqdn": "master.cdp" } ]
+        },
+        {
+          "name": "host_group_2",
+          "hosts": [ { "fqdn": "node1.cdp" } ]
+        },
+        {
+          "name": "host_group_3",
+          "hosts": [ { "fqdn": "node2.cdp" } ]
+        },
+        {
+          "name": "host_group_4",
+          "hosts": [ { "fqdn": "node3.cdp" } ]
+        }
+      ]
+    }
+- path: /root/cluster_deploy.yml
+  permissions: '0644'
+  owner: root:root
+  content: |
+    - name: Deploy Ambari Cluster
+      hosts: localhost
+      gather_facts: no
+      vars:
+        ambari_user: admin
+        ambari_pass: admin
+        ambari_url: http://localhost:8080/api/v1
+        blueprint_file: /root/blueprint.json
+        vdf_file: /root/ODP-VDF.xml
+        cluster_template_file: /root/cluster-template.json
+        cluster_name: odp-cluster
+
+      tasks:
+        - name: Wait for all 4 hosts to be registered
+          uri:
+            url: "{{ ambari_url }}/hosts"
+            user: "{{ ambari_user }}"
+            password: "{{ ambari_pass }}"
+            force_basic_auth: yes
+            return_content: yes
+          register: hosts_response
+          until: hosts_response.json.items | length == 4
+          retries: 60
+          delay: 10
+
+        - name: Register VDF
+          uri:
+            url: "{{ ambari_url }}/version_definitions"
+            method: POST
+            user: "{{ ambari_user }}"
+            password: "{{ ambari_pass }}"
+            force_basic_auth: yes
+            body: "{{ lookup('file', vdf_file) }}"
+            body_format: json
+            status_code: [201, 409]
+          register: vdf_result
+          failed_when: vdf_result.status != 201 and vdf_result.status != 409
+
+        - name: Register Blueprint
+          uri:
+            url: "{{ ambari_url }}/blueprints/odp-blueprint"
+            method: POST
+            user: "{{ ambari_user }}"
+            password: "{{ ambari_pass }}"
+            force_basic_auth: yes
+            body: "{{ lookup('file', blueprint_file) }}"
+            body_format: json
+            status_code: [201, 409]
+
+        - name: Create Cluster
+          uri:
+            url: "{{ ambari_url }}/clusters/{{ cluster_name }}"
+            method: POST
+            user: "{{ ambari_user }}"
+            password: "{{ ambari_pass }}"
+            force_basic_auth: yes
+            body: "{{ lookup('file', cluster_template_file) }}"
+            body_format: json
+            status_code: 202
+          register: cluster_request
+          ignore_errors: yes
+
+        - name: Monitor Cluster Creation
+          uri:
+            url: "{{ cluster_request.json.href }}"
+            user: "{{ ambari_user }}"
+            password: "{{ ambari_pass }}"
+            force_basic_auth: yes
+            return_content: yes
+          register: request_status
+          until: request_status.json.Requests.request_status == 'COMPLETED' or request_status.json.Requests.request_status == 'FAILED'
+          retries: 360
+          delay: 10
+          when: cluster_request.status == 202
+
+        - name: Fail if cluster creation failed
+          fail:
+            msg: "Cluster creation failed. Check Ambari logs."
+          when: cluster_request.status == 202 and request_status.json.Requests.request_status == 'FAILED'
 - path: /root/run-ansible.sh
   permissions: '0755'
   owner: root:root
@@ -310,8 +614,16 @@ write_files:
         sleep 5
       done
     done
-    echo "[run-ansible] Executando playbook..."
+    echo "[run-ansible] Executando playbook de infraestrutura..."
     ANSIBLE_NOCOLOR=1 ansible-playbook /root/site.yml
+
+    echo "[run-ansible] Aguardando arquivos de assets (blueprint.json e ODP-VDF.xml)..."
+    while [ ! -f /root/blueprint.json ] || [ ! -f /root/ODP-VDF.xml ]; do
+      sleep 10
+    done
+
+    echo "[run-ansible] Executando playbook de deploy do cluster..."
+    ANSIBLE_NOCOLOR=1 ansible-playbook /root/cluster_deploy.yml
 
 runcmd:
 - [ sh, -lc, "systemctl enable chronyd && systemctl start chronyd" ]

@@ -20,20 +20,6 @@ resource "oci_core_instance" "Master" {
   remote_data_volume_type             = "PARAVIRTUALIZED"
 }
 
-  
-  shape = var.instance_shape
-
-  metadata = {
-    ssh_authorized_keys = var.generate_public_ssh_key ? tls_private_key.compute_ssh_key.public_key_openssh : "${var.public_ssh_key}\n${tls_private_key.compute_ssh_key.public_key_openssh}"
-    user_data = var.installAmbari ? base64encode(templatefile("cloud-init/master.yaml",  {
-      private_key_pem_b64 = base64encode(tls_private_key.compute_ssh_key.private_key_pem),
-      hg1 = "master.cdp",
-      hg2 = "node1.cdp",
-      hg3 = "node2.cdp",
-      hg4 = "node3.cdp"
-    })) : ""
-  }
-  
   shape_config {
     memory_in_gbs             = var.memory_in_gbs_master
     ocpus                     = var.ocpus_master
@@ -191,4 +177,43 @@ resource "oci_core_instance" "Node3" {
 resource "tls_private_key" "compute_ssh_key" {
   algorithm = "RSA"
   rsa_bits  = 2048
+}
+
+output "generated_private_key_pem" {
+  value     = tls_private_key.compute_ssh_key.private_key_pem
+  sensitive = true
+}
+
+resource "null_resource" "upload_assets" {
+  depends_on = [oci_core_instance.Master]
+
+  triggers = {
+    master_ip = oci_core_instance.Master.public_ip
+  }
+
+  connection {
+    type        = "ssh"
+    user        = "opc"
+    private_key = tls_private_key.compute_ssh_key.private_key_pem
+    host        = oci_core_instance.Master.public_ip
+    timeout     = "10m"
+  }
+
+  provisioner "file" {
+    source      = "assets/blueprint.json"
+    destination = "/tmp/blueprint.json"
+  }
+
+  provisioner "file" {
+    source      = "assets/ODP-VDF.xml"
+    destination = "/tmp/ODP-VDF.xml"
+  }
+
+  provisioner "remote-exec" {
+    inline = [
+      "sudo mv /tmp/blueprint.json /root/blueprint.json",
+      "sudo mv /tmp/ODP-VDF.xml /root/ODP-VDF.xml",
+      "sudo chown root:root /root/blueprint.json /root/ODP-VDF.xml"
+    ]
+  }
 }
