@@ -62,21 +62,36 @@ curl -i -u admin:admin -H "X-Requested-By: ambari" -X POST -d @/root/cluster-tem
 ```
 *Sucesso esperado: HTTP 202 Accepted.*
 
-## 5. Monitorar o Progresso
-O comando anterior retornará um JSON com um link (`href`) para checar o status da requisição (ex: `/api/v1/clusters/odp-cluster/requests/1`).
-Use o ID retornado para monitorar:
+## 5. Monitorar e Debugar (Troubleshooting)
+
+### Consultar Status Geral
+O comando anterior retornou um JSON. Verifique o campo `request_status` ("IN_PROGRESS", "COMPLETED" ou "FAILED") e `progress_percent`.
 
 ```bash
-# Substitua o ID "1" pelo ID retornado no passo 4
-curl -i -u admin:admin -H "X-Requested-By: ambari" http://localhost:8080/api/v1/clusters/odp-cluster/requests/1
+# Substitua o ID na URL (ex: requests/4)
+curl -i -u admin:admin -H "X-Requested-By: ambari" http://localhost:8080/api/v1/clusters/odp-cluster/requests/4
 ```
-Procure por `"request_status": "COMPLETED"` ou `"FAILED"`.
 
----
+### Como encontrar o erro se falhar?
+Se o status for **FAILED** ou **ABORTED**, você precisa descobrir qual tarefa falhou.
 
-## Log de Erro (Dica)
-Ao executar o comando do passo 1, se receber um erro HTML ou algo diferente de JSON, salve a saída para analisar:
+1. **Liste as tarefas que falharam:**
 ```bash
-curl -v -u admin:admin -H "X-Requested-By: ambari" http://localhost:8080/api/v1/hosts > /tmp/erro_api.txt 2>&1
-cat /tmp/erro_api.txt
+curl -u admin:admin -H "X-Requested-By: ambari" "http://localhost:8080/api/v1/clusters/odp-cluster/requests/4/tasks?fields=Tasks/status,Tasks/command_detail&Tasks/status.in(FAILED,ABORTED,TIMEDOUT)"
 ```
+Isso listará apenas as tarefas com erro, mostrando o `id` da tarefa (ex: `10023`).
+
+2. **Veja o log da tarefa específica:**
+Pegue o `id` da tarefa falhada (ex: `10023`) e consulte o log de erro (`stderr`) e de saída (`stdout`):
+
+```bash
+# Exemplo para a tarefa 10023
+curl -u admin:admin -H "X-Requested-By: ambari" "http://localhost:8080/api/v1/clusters/odp-cluster/requests/4/tasks/10023?fields=Tasks/stderr,Tasks/stdout"
+```
+O campo `Tasks/stderr` mostrará a mensagem de erro detalhada (ex: erro de pacote, falha de conexão DB, etc).
+
+### Logs no Sistema
+Além da API, você pode ver os logs diretamente nos arquivos:
+*   **Ambari Server:** `/var/log/ambari-server/ambari-server.log`
+*   **Ambari Agent (nos nós):** `/var/log/ambari-agent/ambari-agent.log`
+
