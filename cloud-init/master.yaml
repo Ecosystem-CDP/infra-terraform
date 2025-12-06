@@ -61,7 +61,7 @@ write_files:
     mkdir -p /var/log/ansible || true
     chmod 755 /var/log/ansible || true
     echo "[run-ansible] Aguardando SSH dos workers..."
-    for h in "${HOSTS[@]}"; do
+    for h in "$${HOSTS[@]}"; do
       echo "[run-ansible] Esperando $h:22 ficar disponível"
       # espera a porta 22 responder por até 15 minutos
       for i in $(seq 1 90); do
@@ -89,7 +89,7 @@ write_files:
       "/root/cluster_deploy.yml"
     )
 
-    for asset in "${ASSETS[@]}"; do
+    for asset in "$${ASSETS[@]}"; do
       echo "[run-ansible] Aguardando $asset..."
       while [ ! -f "$asset" ]; do
         sleep 5
