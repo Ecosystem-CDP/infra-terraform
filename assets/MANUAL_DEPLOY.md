@@ -90,6 +90,26 @@ curl -u admin:admin -H "X-Requested-By: ambari" "http://localhost:8080/api/v1/cl
 ```
 O campo `Tasks/stderr` mostrará a mensagem de erro detalhada (ex: erro de pacote, falha de conexão DB, etc).
 
+### Solução para Erro: Hive Client Install Failed (HTTP 404 mysql-connector-java.jar)
+Se o erro for `Failed to download file from .../resources/mysql-connector-java.jar due to HTTP error: HTTP Error 404: Not Found`, execute no **Master**:
+
+```bash
+# 1. Baixar o conector MySQL (o pacote yum não existe no OL9/ARM)
+curl -L -o /usr/share/java/mysql-connector-java.jar https://repo1.maven.org/maven2/mysql/mysql-connector-java/8.0.28/mysql-connector-java-8.0.28.jar
+
+# 2. Copiar para o diretório de resources do Ambari
+# (Certifique-se que o diretório de destino existe)
+mkdir -p /var/lib/ambari-server/resources
+cp /usr/share/java/mysql-connector-java.jar /var/lib/ambari-server/resources/mysql-connector-java.jar
+
+# 3. Configurar Ambari para usar este driver
+ambari-server setup --jdbc-db=mysql --jdbc-driver=/usr/share/java/mysql-connector-java.jar
+
+# 4. Reiniciar Ambari Server
+ambari-server restart
+```
+**Após reiniciar**, aguarde 30s e tente o "Retry" (símbolo de seta girando) na tarefa falha pela tela do Ambari (ou reenvie o request se necessário).
+
 ### Logs no Sistema
 Além da API, você pode ver os logs diretamente nos arquivos:
 *   **Ambari Server:** `/var/log/ambari-server/ambari-server.log`

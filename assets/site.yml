@@ -181,22 +181,27 @@
           sudo -u hdfs hdfs dfs -chmod 555 /odp/apps/1.2.2.0-128/hbase
           ambari-server restart
 
-    - name: Create hivesetup.sh
+    - name: Download MySQL connector (yum package missing on OL9)
+      ansible.builtin.get_url:
+        url: https://repo1.maven.org/maven2/mysql/mysql-connector-java/8.0.28/mysql-connector-java-8.0.28.jar
+        dest: /usr/share/java/mysql-connector-java.jar
+        mode: '0644'
+
+    - name: Ensure MySQL connector in Ambari resources
       ansible.builtin.copy:
-        dest: /root/hivesetup.sh
-        mode: '0755'
-        content: |
-          #!/bin/bash
-          ambari-server stop
-          sed -i "s/^#port = 5432/port = 5432/" /var/lib/pgsql/data/postgresql.conf
-          echo "host all hive 10.0.0.2/32 trust" | tee -a /var/lib/pgsql/data/pg_hba.conf
-          sudo -u postgres psql -U postgres -c "CREATE DATABASE hive;" || true
-          sudo -u postgres psql -U postgres -c "CREATE USER hive WITH PASSWORD 'hive';" || true
-          sudo -u postgres psql -U postgres -c "GRANT ALL PRIVILEGES ON DATABASE hive TO hive;" || true
-          systemctl restart postgresql
-          yum install -y postgresql-jdbc.noarch
-          ambari-server setup -j /usr/lib/jvm/java-1.8.0-openjdk --jdbc-db=postgres --jdbc-driver=/usr/share/java/postgresql-jdbc.jar
-          ambari-server start
+        src: /usr/share/java/mysql-connector-java.jar
+        dest: /var/lib/ambari-server/resources/mysql-connector-java.jar
+        remote_src: yes
+        mode: '0644'
+
+    - name: Setup Ambari to use MySQL JDBC driver
+      ansible.builtin.command: ambari-server setup --jdbc-db=mysql --jdbc-driver=/usr/share/java/mysql-connector-java.jar
+      changed_when: false
+
+    - name: Restart Ambari Server to pick up changes
+      ansible.builtin.service:
+        name: ambari-server
+        state: restarted
 
 - name: Configure workers
   hosts: workers
