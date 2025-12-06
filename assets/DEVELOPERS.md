@@ -54,3 +54,24 @@ Se houver falha na instalação de um serviço específico em um nó (ex: DataNo
     Se o Ansible completou a etapa de `site.yml` mas falhou no `cluster_deploy.yml`, ou se o Ansible finalizou mas o cluster não subiu:
     *   Verifique o `ambari-server.log`.
     *   Acesse a UI do Ambari (Porta 8080) se possível para ver o status visual.
+
+---
+
+## 📁 Verificação dos Assets
+
+Para garantir que o Terraform realizou o upload e movimentação correta dos arquivos de configuração, acesse o nó **Master** e liste os arquivos no diretório `/root`.
+
+**Comando:**
+```bash
+sudo ls -l /root/
+```
+
+**Saída Esperada:**
+Você deve ver os seguintes arquivos listados (além de scripts padrões como `run-ansible.sh`):
+*   `blueprint.json`
+*   `cluster-template.json`
+*   `cluster_deploy.yml`
+*   `ODP-VDF.xml`
+*   `site.yml`
+
+Se algum deles estiver faltando, o script `run-ansible.sh` ficará aguardando indefinidamente (loop de verificação). Nesse caso, verifique o log do Terraform para erros na etapa `provisioner "file"` ou `provisioner "remote-exec"`.
