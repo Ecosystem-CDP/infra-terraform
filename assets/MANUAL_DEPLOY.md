@@ -36,9 +36,19 @@ curl -i -u admin:admin -H "X-Requested-By: ambari" -X POST -d '{"VersionDefiniti
 ```
 *Sucesso esperado: HTTP 201 Created ou 409 Conflict (se já existir).*
 
+
 ## 3. Registrar Blueprint
 Envia o modelo do cluster.
 
+**Correção Necessária (Erro: MYSQL_SERVER available but hive using existing db):**
+Execute estes comandos para ajustar o `blueprint.json` no servidor (trocar Postgres por MySQL gerenciado):
+```bash
+sed -i 's/"hive_database": "Existing PostgreSQL Database"/"hive_database": "New MySQL Database"/' /root/blueprint.json
+sed -i 's/"hive_database_type": "postgres"/"hive_database_type": "mysql"/' /root/blueprint.json
+sed -i '/"javax.jdo.option.ConnectionURL"/d' /root/blueprint.json
+```
+
+Agora registre o blueprint:
 ```bash
 curl -i -u admin:admin -H "X-Requested-By: ambari" -X POST -d @/root/blueprint.json http://localhost:8080/api/v1/blueprints/odp-blueprint
 ```
