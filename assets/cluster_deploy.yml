@@ -30,7 +30,9 @@
       user: "{{ ambari_user }}"
       password: "{{ ambari_pass }}"
       force_basic_auth: yes
-      body: "{{ lookup('file', vdf_file) }}"
+      body:
+        VersionDefinition:
+          version_url: "file://{{ vdf_file }}"
       body_format: json
       status_code: [ 201, 409 ]
     register: vdf_result
