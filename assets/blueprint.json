@@ -2761,6 +2761,9 @@
                     "name": "HIVE_SERVER"
                 },
                 {
+                    "name": "MYSQL_SERVER"
+                },
+                {
                     "name": "NFS_GATEWAY"
                 },
                 {
