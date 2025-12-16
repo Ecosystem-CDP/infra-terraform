@@ -41,7 +41,7 @@
     <package-version>1_2_2_0_128</package-version>
     <repo>
       <baseurl>https://clemlabs.s3.eu-west-3.amazonaws.com/centos9-aarch64/odp-release/1.2.2.0-128/rpms</baseurl>
-      <repoid>ODP-</repoid>
+      <repoid>ODP-1.2.2.0-128</repoid>
       <reponame>ODP</reponame>
       <unique>true</unique>
     </repo>

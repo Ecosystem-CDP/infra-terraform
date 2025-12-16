@@ -2210,6 +2210,7 @@
                     "hive.server2.thrift.http.port": "10001",
                     "hive.server2.webui.cors.allowed.headers": "X-Requested-With,Content-Type,Accept,Origin,X-Requested-By,x-requested-by",
                     "hive.server2.logging.operation.log.location": "/tmp/hive/operation_logs",
+                    "javax.jdo.option.ConnectionURL": "jdbc:postgresql://%HOSTGROUP::host_group_1%:5432/hive",
                     "hive.materializedview.rewriting.incremental": "false",
                     "hive.map.aggr.hash.min.reduction": "0.5",
                     "hive.merge.size.per.task": "256000000",
@@ -2704,7 +2705,7 @@
                 "properties_attributes": {},
                 "properties": {
                     "heap_dump_location": "/tmp",
-                    "hive_database": "New MySQL Database",
+                    "hive_database": "Existing PostgreSQL Database",
                     "hive_log_dir": "/var/log/hive",
                     "hive_user": "hive",
                     "hive_security_authorization": "Ranger",
@@ -2716,7 +2717,7 @@
                     "hive.heapsize": "2116",
                     "hive.log.level": "INFO",
                     "hive_database_name": "hive",
-                    "hive_database_type": "mysql",
+                    "hive_database_type": "postgres",
                     "enable_heap_dump": "false",
                     "hive_user_nofile_limit": "32000",
                     "alert_ldap_username": "",
@@ -2758,9 +2759,6 @@
                 },
                 {
                     "name": "HIVE_SERVER"
-                },
-                {
-                    "name": "MYSQL_SERVER"
                 },
                 {
                     "name": "NFS_GATEWAY"

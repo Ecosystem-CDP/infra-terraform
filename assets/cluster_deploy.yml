@@ -36,7 +36,7 @@
         X-Requested-By: "ambari"
       return_content: yes
     register: hosts_response
-    until: hosts_response.status == 200 and (hosts_response.content | from_json).items | length == 4
+    until: hosts_response.status == 200 and (hosts_response.content | from_json)['items'] | length == 4
     retries: 60
     delay: 10
     ignore_errors: yes
@@ -54,13 +54,13 @@
         VersionDefinition:
           version_url: "file://{{ vdf_file }}"
       body_format: json
-      status_code: [ 201, 409 ]
+      status_code: [ 201, 409, 500 ]
     register: vdf_result
-    failed_when: vdf_result.status != 201 and vdf_result.status != 409
+    failed_when: vdf_result.status == 500 and "already defined" not in vdf_result.json.message
 
   - name: Register Blueprint
     uri:
-      url: "{{ ambari_url }}/blueprints/odp-blueprint"
+      url: "{{ ambari_url }}/blueprints/odp-blueprint?validate_topology=false"
       method: POST
       user: "{{ ambari_user }}"
       password: "{{ ambari_pass }}"
@@ -70,6 +70,19 @@
       body: "{{ lookup('file', blueprint_file) }}"
       body_format: json
       status_code: [ 201, 409 ]
+
+  - name: Check if Cluster already exists
+    uri:
+      url: "{{ ambari_url }}/clusters/{{ cluster_name }}"
+      method: GET
+      user: "{{ ambari_user }}"
+      password: "{{ ambari_pass }}"
+      force_basic_auth: yes
+      headers:
+        X-Requested-By: "ambari"
+      status_code: [ 200, 404 ]
+      return_content: no
+    register: cluster_check
 
   - name: Create Cluster
     uri:
@@ -84,7 +97,7 @@
       body_format: json
       status_code: 202
     register: cluster_request
-    ignore_errors: yes
+    when: cluster_check.status == 404
 
   - name: Monitor Cluster Creation
     uri:
