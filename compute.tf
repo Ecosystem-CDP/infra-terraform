@@ -20,7 +20,6 @@ resource "oci_core_instance" "Master" {
   remote_data_volume_type             = "PARAVIRTUALIZED"
 }
 
-  
   shape = var.instance_shape
 
   metadata = {
@@ -33,7 +32,7 @@ resource "oci_core_instance" "Master" {
       hg4 = "node3.cdp"
     })) : ""
   }
-  
+
   shape_config {
     memory_in_gbs             = var.memory_in_gbs_master
     ocpus                     = var.ocpus_master
@@ -191,4 +190,58 @@ resource "oci_core_instance" "Node3" {
 resource "tls_private_key" "compute_ssh_key" {
   algorithm = "RSA"
   rsa_bits  = 2048
+}
+
+
+
+resource "null_resource" "upload_assets" {
+  depends_on = [oci_core_instance.Master]
+
+  triggers = {
+    master_ip = oci_core_instance.Master.public_ip
+  }
+
+  connection {
+    type        = "ssh"
+    user        = "opc"
+    private_key = tls_private_key.compute_ssh_key.private_key_pem
+    host        = oci_core_instance.Master.public_ip
+    timeout     = "10m"
+  }
+
+  provisioner "file" {
+    source      = "assets/blueprint.json"
+    destination = "/tmp/blueprint.json"
+  }
+
+  provisioner "file" {
+    source      = "assets/ODP-VDF.xml"
+    destination = "/tmp/ODP-VDF.xml"
+  }
+
+  provisioner "file" {
+    source      = "assets/cluster-template.json"
+    destination = "/tmp/cluster-template.json"
+  }
+
+  provisioner "file" {
+    source      = "assets/cluster_deploy.yml"
+    destination = "/tmp/cluster_deploy.yml"
+  }
+
+  provisioner "file" {
+    source      = "assets/site.yml"
+    destination = "/tmp/site.yml"
+  }
+
+  provisioner "remote-exec" {
+    inline = [
+      "sudo mv /tmp/blueprint.json /root/blueprint.json",
+      "sudo mv /tmp/ODP-VDF.xml /root/ODP-VDF.xml",
+      "sudo mv /tmp/cluster-template.json /root/cluster-template.json",
+      "sudo mv /tmp/cluster_deploy.yml /root/cluster_deploy.yml",
+      "sudo mv /tmp/site.yml /root/site.yml",
+      "sudo chown root:root /root/blueprint.json /root/ODP-VDF.xml /root/cluster-template.json /root/cluster_deploy.yml /root/site.yml"
+    ]
+  }
 }
