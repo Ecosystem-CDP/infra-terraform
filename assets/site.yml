@@ -97,11 +97,7 @@
         url: https://clemlabs.s3.eu-west-3.amazonaws.com/centos9-aarch64/ambari-release/2.7.9.0.0-61/ambari.repo
         dest: /etc/yum.repos.d/ambari.repo
 
-    - name: Update packages
-      ansible.builtin.yum:
-        name: '*'
-        state: latest
-        update_cache: yes
+
 
     - name: Install ambari-agent (all nodes)
       ansible.builtin.yum:
@@ -166,7 +162,8 @@
       ansible.builtin.shell: |
         sudo -u postgres psql -c "DO \$\$ BEGIN IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname='ambari') THEN CREATE ROLE ambari LOGIN PASSWORD 'Ambari123'; END IF; END \$\$;"
         sudo -u postgres psql -c "DO \$\$ BEGIN IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname='hive') THEN CREATE ROLE hive LOGIN PASSWORD 'HiveUserMeta2025'; END IF; END \$\$;"
-        sudo -u postgres psql -c "DO \$\$ BEGIN IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname='rangeradmin') THEN CREATE ROLE rangeradmin LOGIN PASSWORD 'RangerAdmin1234!'; END IF; END \$\$;"
+        sudo -u postgres psql -c "DO \$\$ BEGIN IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname='rangeradmin') THEN CREATE ROLE rangeradmin LOGIN PASSWORD 'Ambari1234'; ELSE ALTER ROLE rangeradmin WITH PASSWORD 'Ambari1234'; END IF; END \$\$;"
+        sudo -u postgres psql -c "ALTER USER postgres WITH PASSWORD 'Ambari1234';"
       args:
         executable: /bin/bash
 
