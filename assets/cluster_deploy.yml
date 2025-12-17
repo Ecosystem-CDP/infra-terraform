@@ -136,10 +136,50 @@
     register: request_status
     until: (request_status.content | from_json).Requests.request_status == 'COMPLETED' or (request_status.content | from_json).Requests.request_status == 'FAILED'
     retries: 360
-    delay: 10
+    delay: 30
     when: cluster_request.status == 202
 
-  - name: Fail if cluster creation failed
-    fail:
-      msg: "Cluster creation failed. Check Ambari logs."
-    when: cluster_request.status == 202 and (request_status.content | from_json).Requests.request_status == 'FAILED'
+  - name: Handle Cluster Creation Failure
+    block:
+      - name: Fail if status is failed (to trigger rescue)
+        fail:
+          msg: "Cluster creation failed initially."
+        when: cluster_request.status == 202 and (request_status.content | from_json).Requests.request_status == 'FAILED'
+
+    rescue:
+      - name: Attempting Auto-Fix for HDFS Upload (OOM workaround)
+        shell: sh /root/hdfscorrections.sh
+        delegate_to: master.cdp
+
+      - name: Retry Failed Cluster Creation Request
+        uri:
+          url: "{{ ambari_url }}/clusters/{{ cluster_name }}/requests/{{ (request_status.content | from_json).Requests.id }}?retry_host_names=master.cdp"
+          method: POST
+          user: "{{ ambari_user }}"
+          password: "{{ ambari_pass }}"
+          force_basic_auth: yes
+          headers:
+            X-Requested-By: "ambari"
+          body: "{}"
+          body_format: json
+          status_code: 202
+        register: retry_request
+
+      - name: Monitor Retry Request
+        uri:
+          url: "{{ retry_request.json.href }}"
+          user: "{{ ambari_user }}"
+          password: "{{ ambari_pass }}"
+          force_basic_auth: yes
+          headers:
+            X-Requested-By: "ambari"
+          return_content: yes
+        register: retry_status
+        until: (retry_status.content | from_json).Requests.request_status == 'COMPLETED' or (retry_status.content | from_json).Requests.request_status == 'FAILED'
+        retries: 360
+        delay: 10
+
+      - name: Fail if retry failed
+        fail:
+          msg: "Cluster creation failed even after retry. Check Ambari logs."
+        when: (retry_status.content | from_json).Requests.request_status == 'FAILED'

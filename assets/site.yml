@@ -273,12 +273,10 @@
         mode: '0755'
         content: |
           #!/bin/bash
-          ambari-server stop
           sudo -u hdfs hdfs dfs -chown root:root /odp/apps/1.2.2.0-128/hbase
           sudo -u hdfs hdfs dfs -chmod 755 /odp/apps/1.2.2.0-128/hbase
           sudo -u hdfs hdfs dfs -put /var/lib/ambari-agent/tmp/yarn-ats/1.2.2.0-128/hbase.tar.gz /odp/apps/1.2.2.0-128/hbase/
           sudo -u hdfs hdfs dfs -chmod 555 /odp/apps/1.2.2.0-128/hbase
-          ambari-server restart
 
     - name: Download MySQL connector (yum package missing on OL9)
       ansible.builtin.get_url:
