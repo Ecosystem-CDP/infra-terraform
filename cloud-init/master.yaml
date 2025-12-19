@@ -310,8 +310,11 @@ write_files:
         sleep 5
       done
     done
-    echo "[run-ansible] Executando playbook..."
+    echo "[run-ansible] Executando playbook de configuração..."
     ANSIBLE_NOCOLOR=1 ansible-playbook /root/site.yml
+
+    echo "[run-ansible] Executando playbook de deploy..."
+    ANSIBLE_NOCOLOR=1 ansible-playbook /root/cluster_deploy.yml
 
 runcmd:
 - [ sh, -lc, "systemctl enable chronyd && systemctl start chronyd" ]
