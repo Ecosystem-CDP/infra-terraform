@@ -40,3 +40,9 @@ Thumbs.db
 # Logs
 logs/
 *.log
+
+# Text
+*.txt
+*.md
+*.rst
+/assets/text/
