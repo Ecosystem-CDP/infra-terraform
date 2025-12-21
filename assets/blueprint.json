@@ -2699,6 +2699,8 @@
                     "hive.log.level": "INFO",
                     "hive_database_name": "hive",
                     "hive_database_type": "postgres",
+                    "hive_database_host": "master.cdp",
+                    "hive_database_password": "hive",
                     "enable_heap_dump": "false",
                     "hive_user_nofile_limit": "32000",
                     "alert_ldap_username": "",
