@@ -32,6 +32,11 @@ Uma vez que o Ansible instala e inicia o Ambari Server, ele começa a orquestrar
     tail -f /var/log/ambari-server/ambari-server.log
     ```
 
+#### Novos artefatos de log (redeploy automático)
+- Fallback do HDFS (tarball ATS/HBase): `/var/log/ansible/hdfs-fix.log`
+- Dump detalhado da Request que falhou (Ambari API): `/var/log/ansible/ambari-request-<REQ_ID>.json`
+  - Inclui status e detalhes das tasks (host, comando, stderr)
+
 ### 4. Ambari Agents (Nos nós executores)
 Se houver falha na instalação de um serviço específico em um nó (ex: DataNode falhando no Node1), verifique o log do agente **na máquina respectiva** (Master ou Workers).
 *   **O que ver:** Execução de comandos recebidos do servidor (install, start, stop).
@@ -54,6 +59,18 @@ Se houver falha na instalação de um serviço específico em um nó (ex: DataNo
     Se o Ansible completou a etapa de `site.yml` mas falhou no `cluster_deploy.yml`, ou se o Ansible finalizou mas o cluster não subiu:
     *   Verifique o `ambari-server.log`.
     *   Acesse a UI do Ambari (Porta 8080) se possível para ver o status visual.
+    *   Veja os novos logs de correção/redeploy:
+        - `/var/log/ansible/hdfs-fix.log` (se o fallback do HDFS rodou)
+        - `/var/log/ansible/ambari-request-<REQ_ID>.json` (diagnóstico da falha)
+
+### ♻️ Comportamento de redeploy automático
+Quando a primeira tentativa de criação do cluster falhar, o playbook `assets/cluster_deploy.yml` fará automaticamente:
+1. Executar o fallback do HDFS (`/root/hdfscorrections.sh`) com log detalhado.
+2. Abortar Requests ativas no Ambari.
+3. Parar todos os serviços (estado INSTALLED) e aguardar.
+4. Deletar o cluster e aguardar 404.
+5. Recriar o cluster a partir do template e monitorar até COMPLETED/FAILED.
+6. Em caso de nova falha, o play termina com mensagem clara e mantém o dump JSON para análise.
 
 ---
 

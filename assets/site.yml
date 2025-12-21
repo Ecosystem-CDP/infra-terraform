@@ -272,11 +272,55 @@
         dest: /root/hdfscorrections.sh
         mode: '0755'
         content: |
-          #!/bin/bash
-          sudo -u hdfs hdfs dfs -chown root:root /odp/apps/1.2.2.0-128/hbase
-          sudo -u hdfs hdfs dfs -chmod 755 /odp/apps/1.2.2.0-128/hbase
-          sudo -u hdfs hdfs dfs -put /var/lib/ambari-agent/tmp/yarn-ats/1.2.2.0-128/hbase.tar.gz /odp/apps/1.2.2.0-128/hbase/
-          sudo -u hdfs hdfs dfs -chmod 555 /odp/apps/1.2.2.0-128/hbase
+          #!/usr/bin/env bash
+          set -Eeuo pipefail
+          LOG="/var/log/ansible/hdfs-fix.log"
+          HDFS_DIR="/odp/apps/1.2.2.0-128/hbase"
+          HDFS_FILE="$HDFS_DIR/hbase.tar.gz"
+          LOCAL_CANDIDATES=(
+            "/var/lib/ambari-agent/tmp/yarn-ats/1.2.2.0-128/hbase.tar.gz"
+            "/var/lib/ambari-agent/data/resources/yarn-ats/1.2.2.0-128/hbase.tar.gz"
+          )
+          log(){ echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*" | tee -a "$LOG"; }
+
+          mkdir -p "$(dirname "$LOG")" || true
+          chmod 755 "$(dirname "$LOG")" || true
+
+          log "Iniciando correção HDFS (tarball HBase para ATS)."
+          log "Parando ambari-server (systemctl)..."
+          systemctl stop ambari-server || true
+
+          log "Garantindo diretório no HDFS: $HDFS_DIR"
+          sudo -u hdfs hdfs dfs -mkdir -p "$HDFS_DIR" || true
+          sudo -u hdfs hdfs dfs -chown root:root "$HDFS_DIR" || true
+          sudo -u hdfs hdfs dfs -chmod 755 "$HDFS_DIR" || true
+
+          if sudo -u hdfs hdfs dfs -test -e "$HDFS_FILE"; then
+            log "Tarball já existe em $HDFS_FILE. Pulando upload."
+          else
+            SRC=""
+            for c in "${LOCAL_CANDIDATES[@]}"; do
+              if [ -f "$c" ]; then SRC="$c"; break; fi
+            done
+            if [ -z "$SRC" ]; then
+              log "ERRO: Tarball local não encontrado nas localizações conhecidas."; exit 1
+            fi
+            log "Enviando tarball local $SRC para $HDFS_FILE"
+            sudo -u hdfs hdfs dfs -put -f "$SRC" "$HDFS_DIR/"
+          fi
+
+          log "Ajustando permissões (read-only no diretório após upload)."
+          sudo -u hdfs hdfs dfs -chmod 555 "$HDFS_DIR" || true
+
+          log "Reiniciando ambari-server (systemctl)..."
+          systemctl start ambari-server
+          if systemctl is-active --quiet ambari-server; then
+            log "ambari-server ativo"
+          else
+            log "ERRO: ambari-server não subiu"; exit 1
+          fi
+
+          log "Correção HDFS finalizada com sucesso."
 
     - name: Download MySQL connector (yum package missing on OL9)
       ansible.builtin.get_url:
