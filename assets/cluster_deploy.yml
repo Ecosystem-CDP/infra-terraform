@@ -93,7 +93,7 @@
       force_basic_auth: yes
       headers:
         X-Requested-By: "ambari"
-      status_code: [200, 404]
+      status_code: [ 200, 404 ]
 
   - name: Register Blueprint
     uri:
@@ -108,7 +108,6 @@
       body_format: json
       status_code: [ 201, 409 ]
 
-
   - name: Create Cluster
     uri:
       url: "{{ ambari_url }}/clusters/{{ cluster_name }}"
@@ -122,12 +121,6 @@
       body_format: json
       status_code: 202
     register: cluster_request
-
-  - name: Log request href for monitoring
-    debug:
-      msg: "Cluster Request HREF: {{ cluster_request.json.href }}"
-    when: cluster_request.status == 202
-
 
   - name: Monitor Cluster Creation
     uri:
@@ -146,168 +139,45 @@
 
   - name: Handle Cluster Creation Failure
     block:
-      - name: Fail if status is failed (to trigger rescue)
-        fail:
-          msg: "Cluster creation failed initially."
-        when: cluster_request.status == 202 and (request_status.content | from_json).Requests.request_status == 'FAILED'
+    - name: Fail if status is failed (to trigger rescue)
+      fail:
+        msg: "Cluster creation failed initially."
+      when: cluster_request.status == 202 and (request_status.content | from_json).Requests.request_status == 'FAILED'
 
     rescue:
-      - name: Attempting Auto-Fix for HDFS Upload (OOM workaround)
-        shell: sh /root/hdfscorrections.sh
-        delegate_to: master.cdp
-        register: hdfs_fix
-        failed_when: false
+    - name: Attempting Auto-Fix for HDFS Upload (OOM workaround)
+      shell: sh /root/hdfscorrections.sh
+      delegate_to: master.cdp
 
-      - name: Show fallback stdout
-        debug:
-          var: hdfs_fix.stdout
-        when: hdfs_fix is defined
+    - name: Retry Failed Cluster Creation Request
+      uri:
+        url: "{{ ambari_url }}/clusters/{{ cluster_name }}/requests/{{ (request_status.content | from_json).Requests.id }}?retry_host_names=master.cdp"
+        method: POST
+        user: "{{ ambari_user }}"
+        password: "{{ ambari_pass }}"
+        force_basic_auth: yes
+        headers:
+          X-Requested-By: "ambari"
+        body: "{}"
+        body_format: json
+        status_code: 202
+      register: retry_request
 
-      - name: Show fallback stderr
-        debug:
-          var: hdfs_fix.stderr
-        when: hdfs_fix is defined
+    - name: Monitor Retry Request
+      uri:
+        url: "{{ retry_request.json.href }}"
+        user: "{{ ambari_user }}"
+        password: "{{ ambari_pass }}"
+        force_basic_auth: yes
+        headers:
+          X-Requested-By: "ambari"
+        return_content: yes
+      register: retry_status
+      until: (retry_status.content | from_json).Requests.request_status == 'COMPLETED' or (retry_status.content | from_json).Requests.request_status == 'FAILED'
+      retries: 360
+      delay: 10
 
-      - name: Collect failure details (request and tasks)
-        uri:
-          url: "{{ ambari_url }}/clusters/{{ cluster_name }}/requests/{{ (request_status.content | from_json).Requests.id }}?fields=Requests/*,tasks/Tasks/command_detail,tasks/Tasks/status,tasks/Tasks/host_name,tasks/Tasks/stderr"
-          user: "{{ ambari_user }}"
-          password: "{{ ambari_pass }}"
-          force_basic_auth: yes
-          headers:
-            X-Requested-By: "ambari"
-          return_content: yes
-        register: failure_dump
-        ignore_errors: yes
-
-      - name: Persist failure dump to file
-        copy:
-          dest: "/var/log/ansible/ambari-request-{{ (request_status.content | from_json).Requests.id }}.json"
-          content: "{{ failure_dump.content | default('') }}"
-        when: failure_dump is defined and failure_dump.content is defined
-
-      - name: List all cluster requests
-        uri:
-          url: "{{ ambari_url }}/clusters/{{ cluster_name }}/requests?fields=Requests/request_status&to=9999"
-          user: "{{ ambari_user }}"
-          password: "{{ ambari_pass }}"
-          force_basic_auth: yes
-          headers:
-            X-Requested-By: "ambari"
-          return_content: yes
-        register: all_reqs
-
-      - name: Build list of active request IDs
-        set_fact:
-          active_request_ids: "{{ all_reqs.json.items | selectattr('Requests.request_status','in',['IN_PROGRESS','PENDING','QUEUED']) | map(attribute='Requests.id') | list }}"
-
-      - name: Abort active requests
-        uri:
-          url: "{{ ambari_url }}/clusters/{{ cluster_name }}/requests/{{ item }}"
-          method: PUT
-          user: "{{ ambari_user }}"
-          password: "{{ ambari_pass }}"
-          force_basic_auth: yes
-          headers:
-            X-Requested-By: "ambari"
-          body:
-            Requests:
-              request_status: "ABORTED"
-          body_format: json
-          status_code: [200, 202, 409]
-        loop: "{{ active_request_ids | default([]) }}"
-        loop_control:
-          label: "request {{ item }}"
-
-      - name: Stop all services (set to INSTALLED)
-        uri:
-          url: "{{ ambari_url }}/clusters/{{ cluster_name }}/services"
-          method: PUT
-          user: "{{ ambari_user }}"
-          password: "{{ ambari_pass }}"
-          force_basic_auth: yes
-          headers:
-            X-Requested-By: "ambari"
-          body:
-            RequestInfo:
-              context: "Stop All Services"
-            Body:
-              ServiceInfo:
-                state: "INSTALLED"
-          body_format: json
-          status_code: [200, 202, 409]
-        register: stop_req
-        failed_when: false
-
-      - name: Wait until all services are INSTALLED
-        uri:
-          url: "{{ ambari_url }}/clusters/{{ cluster_name }}/services?fields=ServiceInfo/state"
-          user: "{{ ambari_user }}"
-          password: "{{ ambari_pass }}"
-          force_basic_auth: yes
-          headers:
-            X-Requested-By: "ambari"
-        register: svc_states
-        until: svc_states.json.items | map(attribute='ServiceInfo.state') | list | unique == ['INSTALLED']
-        retries: 60
-        delay: 10
-        failed_when: false
-
-      - name: Delete existing Cluster (after cleanup)
-        uri:
-          url: "{{ ambari_url }}/clusters/{{ cluster_name }}"
-          method: DELETE
-          user: "{{ ambari_user }}"
-          password: "{{ ambari_pass }}"
-          force_basic_auth: yes
-          headers:
-            X-Requested-By: "ambari"
-          status_code: [200, 202, 404]
-
-      - name: Wait for Cluster to be deleted
-        uri:
-          url: "{{ ambari_url }}/clusters/{{ cluster_name }}"
-          method: GET
-          user: "{{ ambari_user }}"
-          password: "{{ ambari_pass }}"
-          force_basic_auth: yes
-          headers:
-            X-Requested-By: "ambari"
-          status_code: [404]
-        register: cluster_gone_after_fix
-        until: cluster_gone_after_fix.status == 404
-        retries: 60
-        delay: 5
-
-      - name: Re-Create Cluster (new request after fix)
-        uri:
-          url: "{{ ambari_url }}/clusters/{{ cluster_name }}"
-          method: POST
-          user: "{{ ambari_user }}"
-          password: "{{ ambari_pass }}"
-          force_basic_auth: yes
-          headers:
-            X-Requested-By: "ambari"
-          body: "{{ lookup('file', cluster_template_file) }}"
-          body_format: json
-          status_code: 202
-        register: cluster_request_retry
-
-      - name: Monitor Retried Cluster Creation
-        uri:
-          url: "{{ cluster_request_retry.json.href }}"
-          user: "{{ ambari_user }}"
-          password: "{{ ambari_pass }}"
-          force_basic_auth: yes
-          headers:
-            X-Requested-By: "ambari"
-          return_content: yes
-        register: retry_status
-        until: (retry_status.content | from_json).Requests.request_status in ['COMPLETED','FAILED']
-        retries: 360
-        delay: 30
-
-      - name: Fail if retry deployment failed
-        fail:
-          msg: "Cluster creation failed even after cleanup+recreate. Confira Ambari logs e /var/log/ansible/ambari-request-*.json."
-        when: (retry_status.content | from_json).Requests.request_status == 'FAILED'
+    - name: Fail if retry failed
+      fail:
+        msg: "Cluster creation failed even after retry. Check Ambari logs."
+      when: (retry_status.content | from_json).Requests.request_status == 'FAILED'

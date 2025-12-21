@@ -226,81 +226,13 @@ write_files:
             dest: /root/hdfscorrections.sh
             mode: '0755'
             content: |
-              #!/usr/bin/env bash
-              set -Eeuo pipefail
-              LOG="/var/log/ansible/hdfs-fix.log"
-              HDFS_DIR="/odp/apps/1.2.2.0-128/hbase"
-              HDFS_FILE="$HDFS_DIR/hbase.tar.gz"
-              LOCAL_CANDIDATES=(
-                "/var/lib/ambari-agent/tmp/yarn-ats/1.2.2.0-128/hbase.tar.gz"
-                "/var/lib/ambari-agent/data/resources/yarn-ats/1.2.2.0-128/hbase.tar.gz"
-              )
-              log(){ echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*" | tee -a "$LOG"; }
-
-              mkdir -p "$(dirname "$LOG")" || true
-              chmod 755 "$(dirname "$LOG")" || true
-
-              # Helper: aguarda HDFS responder; se não, sai com sucesso (não-bloqueante)
-              wait_hdfs() {
-                local tries="$1"; local delay="$2"
-                [ -z "$tries" ] && tries=6
-                [ -z "$delay" ] && delay=5
-                for i in $(seq 1 "$tries"); do
-                  if sudo -u hdfs hdfs dfs -ls / >/dev/null 2>&1; then return 0; fi
-                  sleep "$delay"
-                done
-                return 1
-              }
-
-              log "Iniciando correção HDFS (tarball HBase para ATS)."
-
-              if ! wait_hdfs 6 5; then
-                log "HDFS indisponível (NameNode não responde). Pulando correção e seguindo com cleanup+recreate."
-                exit 0
-              fi
-
-              if sudo -u hdfs hdfs dfs -test -e "$HDFS_FILE"; then
-                log "Tarball já existe em $HDFS_FILE. Ajustando permissões e saindo."
-                sudo -u hdfs hdfs dfs -chmod 555 "$HDFS_DIR" || true
-                exit 0
-              fi
-
-              SRC=""
-              for c in "$${LOCAL_CANDIDATES[@]}"; do
-                if [ -f "$c" ]; then SRC="$c"; break; fi
-              done
-              if [ -z "$SRC" ]; then
-                SRC=$(find /var/lib/ambari-agent -type f -name 'hbase.tar.gz' 2>/dev/null | head -n1 || true)
-              fi
-
-              if [ -z "$SRC" ]; then
-                log "Tarball local não encontrado. Nada a corrigir agora. Prosseguindo com cleanup+recreate."
-                exit 0
-              fi
-
-              log "Parando ambari-server (systemctl)..."
-              systemctl stop ambari-server || true
-
-              log "Garantindo diretório no HDFS: $HDFS_DIR"
-              sudo -u hdfs hdfs dfs -mkdir -p "$HDFS_DIR" || true
-              sudo -u hdfs hdfs dfs -chown root:root "$HDFS_DIR" || true
-              sudo -u hdfs hdfs dfs -chmod 755 "$HDFS_DIR" || true
-
-              log "Enviando tarball local $SRC para $HDFS_FILE"
-              sudo -u hdfs hdfs dfs -put -f "$SRC" "$HDFS_DIR/"
-
-              log "Ajustando permissões (read-only no diretório após upload)."
-              sudo -u hdfs hdfs dfs -chmod 555 "$HDFS_DIR" || true
-
-              log "Reiniciando ambari-server (systemctl)..."
-              systemctl start ambari-server || true
-              if systemctl is-active --quiet ambari-server; then
-                log "ambari-server ativo"
-              else
-                log "AVISO: ambari-server não subiu após a correção (não é crítico)."
-              fi
-
-              log "Correção HDFS finalizada (idempotente)."
+              #!/bin/bash
+              ambari-server stop
+              sudo -u hdfs hdfs dfs -chown root:root /odp/apps/1.2.2.0-128/hbase
+              sudo -u hdfs hdfs dfs -chmod 755 /odp/apps/1.2.2.0-128/hbase
+              sudo -u hdfs hdfs dfs -put /var/lib/ambari-agent/tmp/yarn-ats/1.2.2.0-128/hbase.tar.gz /odp/apps/1.2.2.0-128/hbase/
+              sudo -u hdfs hdfs dfs -chmod 555 /odp/apps/1.2.2.0-128/hbase
+              ambari-server restart
 
         - name: Create hivesetup.sh
           ansible.builtin.copy:
