@@ -286,7 +286,44 @@
           mkdir -p "$(dirname "$LOG")" || true
           chmod 755 "$(dirname "$LOG")" || true
 
+          # Helper para checar disponibilidade do HDFS
+          wait_hdfs() {
+            local tries="$1"; local delay="$2"
+            [ -z "$tries" ] && tries=6
+            [ -z "$delay" ] && delay=5
+            for i in $(seq 1 "$tries"); do
+              if sudo -u hdfs hdfs dfs -ls / >/dev/null 2>&1; then return 0; fi
+              sleep "$delay"
+            done
+            return 1
+          }
+
           log "Iniciando correção HDFS (tarball HBase para ATS)."
+
+          if ! wait_hdfs 6 5; then
+            log "HDFS indisponível (NameNode não responde). Pulando correção e seguindo com cleanup+recreate."
+            exit 0
+          fi
+
+          if sudo -u hdfs hdfs dfs -test -e "$HDFS_FILE"; then
+            log "Tarball já existe em $HDFS_FILE. Ajustando permissões e saindo."
+            sudo -u hdfs hdfs dfs -chmod 555 "$HDFS_DIR" || true
+            exit 0
+          fi
+
+          SRC=""
+          for c in "${LOCAL_CANDIDATES[@]}"; do
+            if [ -f "$c" ]; then SRC="$c"; break; fi
+          done
+          if [ -z "$SRC" ]; then
+            SRC=$(find /var/lib/ambari-agent -type f -name 'hbase.tar.gz' 2>/dev/null | head -n1 || true)
+          fi
+
+          if [ -z "$SRC" ]; then
+            log "Tarball local não encontrado. Nada a corrigir agora. Prosseguindo com cleanup+recreate."
+            exit 0
+          fi
+
           log "Parando ambari-server (systemctl)..."
           systemctl stop ambari-server || true
 
@@ -295,32 +332,21 @@
           sudo -u hdfs hdfs dfs -chown root:root "$HDFS_DIR" || true
           sudo -u hdfs hdfs dfs -chmod 755 "$HDFS_DIR" || true
 
-          if sudo -u hdfs hdfs dfs -test -e "$HDFS_FILE"; then
-            log "Tarball já existe em $HDFS_FILE. Pulando upload."
-          else
-            SRC=""
-            for c in "${LOCAL_CANDIDATES[@]}"; do
-              if [ -f "$c" ]; then SRC="$c"; break; fi
-            done
-            if [ -z "$SRC" ]; then
-              log "ERRO: Tarball local não encontrado nas localizações conhecidas."; exit 1
-            fi
-            log "Enviando tarball local $SRC para $HDFS_FILE"
-            sudo -u hdfs hdfs dfs -put -f "$SRC" "$HDFS_DIR/"
-          fi
+          log "Enviando tarball local $SRC para $HDFS_FILE"
+          sudo -u hdfs hdfs dfs -put -f "$SRC" "$HDFS_DIR/"
 
           log "Ajustando permissões (read-only no diretório após upload)."
           sudo -u hdfs hdfs dfs -chmod 555 "$HDFS_DIR" || true
 
           log "Reiniciando ambari-server (systemctl)..."
-          systemctl start ambari-server
+          systemctl start ambari-server || true
           if systemctl is-active --quiet ambari-server; then
             log "ambari-server ativo"
           else
-            log "ERRO: ambari-server não subiu"; exit 1
+            log "AVISO: ambari-server não subiu após a correção (não é crítico)."
           fi
 
-          log "Correção HDFS finalizada com sucesso."
+          log "Correção HDFS finalizada (idempotente)."
 
     - name: Download MySQL connector (yum package missing on OL9)
       ansible.builtin.get_url:

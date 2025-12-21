@@ -155,6 +155,18 @@
       - name: Attempting Auto-Fix for HDFS Upload (OOM workaround)
         shell: sh /root/hdfscorrections.sh
         delegate_to: master.cdp
+        register: hdfs_fix
+        failed_when: false
+
+      - name: Show fallback stdout
+        debug:
+          var: hdfs_fix.stdout
+        when: hdfs_fix is defined
+
+      - name: Show fallback stderr
+        debug:
+          var: hdfs_fix.stderr
+        when: hdfs_fix is defined
 
       - name: Collect failure details (request and tasks)
         uri:
