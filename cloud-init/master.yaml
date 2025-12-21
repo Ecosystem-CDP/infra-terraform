@@ -253,7 +253,7 @@ write_files:
                 log "Tarball já existe em $HDFS_FILE. Pulando upload."
               else
                 SRC=""
-                for c in "${LOCAL_CANDIDATES[@]}"; do
+                for c in "$${LOCAL_CANDIDATES[@]}"; do
                   if [ -f "$c" ]; then SRC="$c"; break; fi
                 done
                 if [ -z "$SRC" ]; then
