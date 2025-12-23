@@ -1,0 +1,47 @@
+# Terraform
+*.tfstate
+*.tfstate.*
+*.tfvars
+*.tfvars.json
+.terraform/
+.terraform.lock.hcl
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# IDE
+.idea/
+*.iml
+*.iws
+.vscode/
+
+# SSH Keys
+*.pem
+*.key
+id_rsa
+id_rsa.pub
+*_rsa
+*_rsa.pub
+
+# Ansible
+*.retry
+*.log
+.ansible/
+
+# OS
+.DS_Store
+Thumbs.db
+*~
+.*.swp
+
+# Logs
+logs/
+*.log
+
+# Text
+*.md
+*.rst
+

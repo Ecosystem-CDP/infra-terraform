@@ -51,7 +51,7 @@
                     "db_root_user": "postgres",
                     "DB_FLAVOR": "POSTGRES",
                     "db_name": "ranger",
-                    "policymgr_external_url": "http://%HOSTGROUP::host_group_1%:6080",
+                    "policymgr_external_url": "http://master.cdp:6080",
                     "db_user": "rangeradmin",
                     "SQL_CONNECTOR_JAR": "{{driver_curl_target}}",
                     "db_host": "master.cdp:5432"
@@ -65,6 +65,13 @@
                     "hive2_log_maxfilesize": "256",
                     "hive2_log_maxbackupindex": "30",
                     "content": "\n# Licensed to the Apache Software Foundation (ASF) under one\n# or more contributor license agreements.  See the NOTICE file\n# distributed with this work for additional information\n# regarding copyright ownership.  The ASF licenses this file\n# to you under the Apache License, Version 2.0 (the\n# \"License\"); you may not use this file except in compliance\n# with the License.  You may obtain a copy of the License at\n#\n#     http://www.apache.org/licenses/LICENSE-2.0\n#\n# Unless required by applicable law or agreed to in writing, software\n# distributed under the License is distributed on an \"AS IS\" BASIS,\n# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\n# See the License for the specific language governing permissions and\n# limitations under the License.\n\nstatus = INFO\nname = HiveLog4j2\npackages = org.apache.hadoop.hive.ql.log\n\n# list of properties\nproperty.hive.log.level = {{hive_log_level}}\nproperty.hive.root.logger = DRFA\nproperty.hive.log.dir = ${sys:java.io.tmpdir}/${sys:user.name}\nproperty.hive.log.file = hive.log\n\n# list of all appenders\nappenders = console, DRFA\n\n# console appender\nappender.console.type = Console\nappender.console.name = console\nappender.console.target = SYSTEM_ERR\nappender.console.layout.type = PatternLayout\nappender.console.layout.pattern = %d{yy/MM/dd HH:mm:ss} [%t]: %p %c{2}: %m%n\n\n# daily rolling file appender\nappender.DRFA.type = RollingFile\nappender.DRFA.name = DRFA\nappender.DRFA.fileName = ${sys:hive.log.dir}/${sys:hive.log.file}\n# Use %pid in the filePattern to append process-id@host-name to the filename if you want separate log files for different CLI session\nappender.DRFA.filePattern = ${sys:hive.log.dir}/${sys:hive.log.file}.%d{yyyy-MM-dd}_%i.gz\nappender.DRFA.layout.type = PatternLayout\nappender.DRFA.layout.pattern = %d{ISO8601} %-5p [%t]: %c{2} (%F:%M(%L)) - %m%n\nappender.DRFA.policies.type = Policies\nappender.DRFA.policies.time.type = TimeBasedTriggeringPolicy\nappender.DRFA.policies.time.interval = 1\nappender.DRFA.policies.time.modulate = true\nappender.DRFA.strategy.type = DefaultRolloverStrategy\nappender.DRFA.strategy.max = {{hive2_log_maxbackupindex}}\nappender.DRFA.policies.fsize.type = SizeBasedTriggeringPolicy\nappender.DRFA.policies.fsize.size = {{hive2_log_maxfilesize}}MB\n\n# list of all loggers\nloggers = NIOServerCnxn, ClientCnxnSocketNIO, DataNucleus, Datastore, JPOX\n\nlogger.NIOServerCnxn.name = org.apache.zookeeper.server.NIOServerCnxn\nlogger.NIOServerCnxn.level = WARN\n\nlogger.ClientCnxnSocketNIO.name = org.apache.zookeeper.ClientCnxnSocketNIO\nlogger.ClientCnxnSocketNIO.level = WARN\n\nlogger.DataNucleus.name = DataNucleus\nlogger.DataNucleus.level = ERROR\n\nlogger.Datastore.name = Datastore\nlogger.Datastore.level = ERROR\n\nlogger.JPOX.name = JPOX\nlogger.JPOX.level = ERROR\n\n# root logger\nrootLogger.level = ${sys:hive.log.level}\nrootLogger.appenderRefs = root\nrootLogger.appenderRef.root.ref = ${sys:hive.root.logger}"
+                }
+            }
+        },
+        {
+            "hive-site": {
+                "properties": {
+                    "javax.jdo.option.ConnectionPassword": "HiveUserMeta2025"
                 }
             }
         },
@@ -157,14 +164,6 @@
             }
         },
         {
-            "livy2-spark-blacklist": {
-                "properties_attributes": {},
-                "properties": {
-                    "content": "\n            #\n            # Configuration override / blacklist. Defines a list of properties that users are not allowed\n            # to override when starting Spark sessions.\n            #\n            # This file takes a list of property names (one per line). Empty lines and lines starting with \"#\"\n            # are ignored.\n            #\n\n            # Disallow overriding the master and the deploy mode.\n            spark.master\n            spark.submit.deployMode\n\n            # Disallow overriding the location of Spark cached jars.\n            spark.yarn.jar\n            spark.yarn.jars\n            spark.yarn.archive\n\n            # Don't allow users to override the RSC timeout.\n            livy.rsc.server.idle_timeout"
-                }
-            }
-        },
-        {
             "hadoop-policy": {
                 "properties_attributes": {},
                 "properties": {
@@ -208,7 +207,7 @@
                     }
                 },
                 "properties": {
-                    "fs.defaultFS": "hdfs://%HOSTGROUP::host_group_1%:8020",
+                    "fs.defaultFS": "hdfs://master.cdp:8020",
                     "fs.s3a.multipart.size": "67108864",
                     "hadoop.http.cross-origin.allowed-methods": "GET,PUT,POST,OPTIONS,HEAD,DELETE",
                     "ipc.server.tcpnodelay": "true",
@@ -223,7 +222,7 @@
                     "hadoop.http.authentication.simple.anonymous.allowed": "true",
                     "hadoop.security.authorization": "false",
                     "ipc.client.connection.maxidletime": "30000",
-                    "hadoop.proxyuser.hive.hosts": "%HOSTGROUP::host_group_2%",
+                    "hadoop.proxyuser.hive.hosts": "node1.cdp",
                     "hadoop.proxyuser.root.hosts": "master.cdp",
                     "ha.failover-controller.active-standby-elector.zk.op.retries": "120",
                     "hadoop.http.cross-origin.allowed-headers": "X-Requested-With,Content-Type,Accept,Origin,WWW-Authenticate,Accept-Encoding,Transfer-Encoding",
@@ -300,7 +299,7 @@
                     "log.segment.bytes": "1073741824",
                     "offset.metadata.max.bytes": "4096",
                     "ssl.truststore.location": "",
-                    "zookeeper.connect": "%HOSTGROUP::host_group_1%:2181,%HOSTGROUP::host_group_2%:2181,%HOSTGROUP::host_group_3%:2181",
+                    "zookeeper.connect": "master.cdp:2181,node1.cdp:2181,node2.cdp:2181",
                     "port": "6667",
                     "zookeeper.sync.time.ms": "2000",
                     "num.replica.fetchers": "1",
@@ -675,12 +674,21 @@
                 "properties_attributes": {},
                 "properties": {
                     "ranger-hive-plugin-enabled": "Yes",
+                    "ranger_admin_password": "Ambari1234",
+                    "admin_password": "Ambari1234",
+                    "rangerusersync_user_password": "Ambari1234",
+                    "rangertagsync_user_password": "Ambari1234",
+                    "keyadmin_user_password": "Ambari1234",
                     "admin_username": "admin",
                     "ranger-hbase-plugin-enabled": "No",
                     "ranger-hdfs-plugin-enabled": "No",
                     "ranger_solr_config_set": "ranger_audits",
-                    "xasecure.audit.destination.hdfs.dir": "hdfs://%HOSTGROUP::host_group_1%:8020/ranger/audit",
+                    "xasecure.audit.destination.hdfs.dir": "hdfs://master.cdp:8020/ranger/audit",
                     "ranger_privelege_user_jdbc_url": "jdbc:postgresql://master.cdp:5432/postgres",
+                    "ranger_privelege_user": "postgres",
+                    "ranger_privelege_user_password": "Ambari1234",
+                    "db_root_user": "postgres",
+                    "db_root_password": "Ambari1234",
                     "ranger-kafka-plugin-enabled": "No",
                     "ranger-nifi-plugin-enabled": "Yes",
                     "content": "#!/bin/bash\n\n# Licensed to the Apache Software Foundation (ASF) under one\n# or more contributor license agreements.  See the NOTICE file\n# distributed with this work for additional information\n# regarding copyright ownership.  The ASF licenses this file\n# to you under the Apache License, Version 2.0 (the\n# \"License\"); you may not use this file except in compliance\n# with the License.  You may obtain a copy of the License at\n#\n#  http://www.apache.org/licenses/LICENSE-2.0\n#\n# Unless required by applicable law or agreed to in writing, software\n# distributed under the License is distributed on an \"AS IS\" BASIS,\n# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\n# See the License for the specific language governing permissions and\n# limitations under the License.\n\n# Set Ranger-specific environment variables here.\nexport JAVA_HOME={{java_home}}\n\n{% if is_ranger_admin_host  %}\n# Ranger Admin specific environment variables here.\nexport RANGER_ADMIN_LOG_DIR={{admin_log_dir}}\nexport RANGER_PID_DIR_PATH={{ranger_pid_dir}}\nexport RANGER_USER={{unix_user}}\n{% if security_enabled %}\nexport JAVA_OPTS=\" ${JAVA_OPTS} -Dzookeeper.sasl.client.username={{zookeeper_principal_primary}} \"\n{% endif %}\n{% endif %}\n\n{% if is_ranger_usersync_host  %}\n# Ranger Usersync specific environment variables here.\nexport USERSYNC_CONF_DIR={{ranger_ugsync_conf}}\nexport logdir={{usersync_log_dir}}\nexport USERSYNC_PID_DIR_PATH={{ranger_pid_dir}}\nexport UNIX_USERSYNC_USER={{unix_user}}\n{% endif %}\n\n{% if is_ranger_tagsync_host  %}\n# Ranger Tagsync specific environment variables here.\nexport RANGER_TAGSYNC_LOG_DIR={{tagsync_log_dir}}\nexport TAGSYNC_PID_DIR_PATH={{ranger_pid_dir}}\nexport UNIX_TAGSYNC_USER={{unix_user}}\n{% endif %}",
@@ -870,19 +878,6 @@
             }
         },
         {
-            "livy2-env": {
-                "properties_attributes": {},
-                "properties": {
-                    "livy2_log_dir": "/var/log/livy2",
-                    "livy2_user": "livy",
-                    "spark_home": "/usr/odp/current/spark3-client",
-                    "livy2_pid_dir": "/var/run/livy2",
-                    "livy2_group": "livy",
-                    "content": "\n            #!/usr/bin/env bash\n\n            # - SPARK_HOME      Spark which you would like to use in livy\n            # - SPARK_CONF_DIR  Directory containing the Spark configuration to use.\n            # - HADOOP_CONF_DIR Directory containing the Hadoop / YARN configuration to use.\n            # - LIVY_LOG_DIR    Where log files are stored.  (Default: ${LIVY_HOME}/logs)\n            # - LIVY_PID_DIR    Where the pid file is stored. (Default: /tmp)\n            # - LIVY_SERVER_JAVA_OPTS  Java Opts for running livy server (You can set jvm related setting here, like jvm memory/gc algorithm and etc.)\n            export SPARK_HOME=/usr/odp/current/spark3-client\n            export SPARK_CONF_DIR=/etc/spark3/conf\n            export JAVA_HOME={{java_home}}\n            export HADOOP_CONF_DIR=/etc/hadoop/conf\n            export LIVY_LOG_DIR={{livy2_log_dir}}\n            export LIVY_PID_DIR={{livy2_pid_dir}}\n            export LIVY_SERVER_JAVA_OPTS=\"-Xmx2g\""
-                }
-            }
-        },
-        {
             "cluster-env": {
                 "properties_attributes": {},
                 "properties": {
@@ -965,7 +960,7 @@
                     "hive.vectorized.execution.mapjoin.native.enabled": "true",
                     "hive.metastore.event.listeners": "",
                     "hive.server2.tez.default.queues": "default",
-                    "hive.llap.zk.sm.connectionString": "%HOSTGROUP::host_group_1%:2181,%HOSTGROUP::host_group_3%:2181,%HOSTGROUP::host_group_2%:2181",
+                    "hive.llap.zk.sm.connectionString": "master.cdp:2181,node2.cdp:2181,node1.cdp:2181",
                     "hive.server2.tez.sessions.custom.queue.allowed": "ignore",
                     "hive.server2.tez.sessions.per.default.queue": "1",
                     "hive.server2.webui.use.ssl": "false",
@@ -1032,7 +1027,7 @@
                     "ranger.plugin.hive.ambari.cluster.name": "{{cluster_name}}",
                     "xasecure.audit.destination.solr": "true",
                     "xasecure.audit.destination.solr.batch.filespool.dir": "/var/log/hive/audit/solr/spool",
-                    "xasecure.audit.destination.hdfs.dir": "hdfs://%HOSTGROUP::host_group_1%:8020/ranger/audit",
+                    "xasecure.audit.destination.hdfs.dir": "hdfs://master.cdp:8020/ranger/audit",
                     "xasecure.audit.destination.solr.zookeepers": "master.cdp:2181,node1.cdp:2181,node2.cdp:2181/infra-solr",
                     "xasecure.audit.provider.summary.enabled": "false",
                     "xasecure.audit.destination.solr.urls": ""
@@ -1195,7 +1190,7 @@
                     "hbase.rpc.controllerfactory.class": "",
                     "hbase.client.retries.number": "35",
                     "hbase.hstore.compaction.max": "10",
-                    "hbase.zookeeper.quorum": "%HOSTGROUP::host_group_1%,%HOSTGROUP::host_group_2%,%HOSTGROUP::host_group_3%",
+                    "hbase.zookeeper.quorum": "master.cdp,node1.cdp,node2.cdp",
                     "hbase.regionserver.info.port": "16030",
                     "hbase.rpc.protection": "authentication",
                     "zookeeper.znode.parent": "/hbase-unsecure",
@@ -1347,7 +1342,7 @@
                     "xasecure.audit.is.enabled": "true",
                     "xasecure.audit.destination.hdfs": "true",
                     "xasecure.audit.destination.solr.batch.filespool.dir": "/var/log/hadoop/yarn/audit/solr/spool",
-                    "xasecure.audit.destination.hdfs.dir": "hdfs://%HOSTGROUP::host_group_1%:8020/ranger/audit",
+                    "xasecure.audit.destination.hdfs.dir": "hdfs://master.cdp:8020/ranger/audit",
                     "xasecure.audit.destination.db.jdbc.url": "{{audit_jdbc_url}}",
                     "xasecure.audit.destination.db.jdbc.driver": "{{jdbc_driver}}",
                     "xasecure.audit.destination.db": "false",
@@ -1483,8 +1478,8 @@
                     "manage.include.files": "false",
                     "dfs.journalnode.http-address": "0.0.0.0:8480",
                     "nfs.file.dump.dir": "/tmp/.hdfs-nfs",
-                    "dfs.namenode.rpc-address": "%HOSTGROUP::host_group_1%:8020",
-                    "dfs.namenode.https-address": "%HOSTGROUP::host_group_1%:50470",
+                    "dfs.namenode.rpc-address": "master.cdp:8020",
+                    "dfs.namenode.https-address": "master.cdp:50470",
                     "dfs.encrypt.data.transfer.cipher.suites": "AES/CTR/NoPadding",
                     "dfs.client.read.shortcircuit.streams.cache.size": "4096",
                     "dfs.hosts.exclude": "/etc/hadoop/conf/dfs.exclude",
@@ -1507,7 +1502,7 @@
                     "dfs.replication.max": "50",
                     "dfs.client.read.shortcircuit": "true",
                     "dfs.webhdfs.enabled": "true",
-                    "dfs.namenode.http-address": "%HOSTGROUP::host_group_1%:50070",
+                    "dfs.namenode.http-address": "master.cdp:50070",
                     "dfs.namenode.name.dir": "/hadoop/hdfs/namenode,/var/oled/hadoop/hdfs/namenode",
                     "dfs.namenode.avoid.write.stale.datanode": "true",
                     "dfs.datanode.https.address": "0.0.0.0:50475",
@@ -1527,7 +1522,7 @@
                     "dfs.namenode.write.stale.datanode.ratio": "1.0f",
                     "dfs.namenode.name.dir.restore": "true",
                     "dfs.heartbeat.interval": "3",
-                    "dfs.namenode.secondary.http-address": "%HOSTGROUP::host_group_1%:50090",
+                    "dfs.namenode.secondary.http-address": "master.cdp:50090",
                     "dfs.namenode.checkpoint.txns": "1000000",
                     "dfs.journalnode.edits.dir": "/hadoop/hdfs/journalnode",
                     "fs.permissions.umask-mode": "022",
@@ -1556,11 +1551,11 @@
                 },
                 "properties": {
                     "yarn.nodemanager.resource-plugins.gpu.path-to-discovery-executables": "",
-                    "yarn.resourcemanager.zk-address": "%HOSTGROUP::host_group_2%:2181,%HOSTGROUP::host_group_3%:2181,%HOSTGROUP::host_group_1%:2181",
+                    "yarn.resourcemanager.zk-address": "node1.cdp:2181,node2.cdp:2181,master.cdp:2181",
                     "yarn.nodemanager.container-monitor.interval-ms": "3000",
                     "yarn.timeline-service.entity-group-fs-store.active-dir": "/ats/active/",
                     "hadoop.registry.dns.bind-address": "0.0.0.0",
-                    "yarn.log.server.web-service.url": "http://%HOSTGROUP::host_group_1%:8188/ws/v1/applicationhistory",
+                    "yarn.log.server.web-service.url": "http://master.cdp:8188/ws/v1/applicationhistory",
                     "yarn.nodemanager.linux-container-executor.group": "hadoop",
                     "yarn.nodemanager.recovery.supervised": "true",
                     "yarn.application.classpath": "$HADOOP_CONF_DIR,{{hadoop_home}}/*,{{hadoop_home}}/lib/*,{{stack_root}}/current/hadoop-hdfs-client/*,{{stack_root}}/current/hadoop-hdfs-client/lib/*,{{stack_root}}/current/hadoop-yarn-client/*,{{stack_root}}/current/hadoop-yarn-client/lib/*,{{stack_root}}/current/hadoop-client/share/hadoop/common/lib/*",
@@ -1569,11 +1564,11 @@
                     "yarn.resourcemanager.display.per-user-apps": "true",
                     "yarn.nodemanager.remote-app-log-dir-suffix": "logs",
                     "yarn.nodemanager.address": "0.0.0.0:45454",
-                    "yarn.resourcemanager.webapp.address": "%HOSTGROUP::host_group_1%:8088",
+                    "yarn.resourcemanager.webapp.address": "master.cdp:8088",
                     "yarn.timeline-service.leveldb-timeline-store.ttl-interval-ms": "300000",
                     "yarn.nodemanager.runtime.linux.allowed-runtimes": "default,docker",
                     "yarn.scheduler.maximum-allocation-vcores": "1",
-                    "yarn.timeline-service.address": "%HOSTGROUP::host_group_1%:10200",
+                    "yarn.timeline-service.address": "master.cdp:10200",
                     "yarn.timeline-service.enabled": "true",
                     "yarn.timeline-service.http-cross-origin.enabled": "true",
                     "yarn.nodemanager.aux-services": "mapreduce_shuffle,{{timeline_collector}}",
@@ -1595,10 +1590,10 @@
                     "yarn.nodemanager.runtime.linux.docker.allowed-container-networks": "host,none,bridge",
                     "hadoop.registry.dns.zone-mask": "255.255.255.0",
                     "yarn.nodemanager.resource-plugins.gpu.docker-plugin": "",
-                    "yarn.resourcemanager.admin.address": "%HOSTGROUP::host_group_1%:8141",
+                    "yarn.resourcemanager.admin.address": "master.cdp:8141",
                     "yarn.timeline-service.generic-application-history.save-non-am-container-meta-info": "false",
                     "yarn.nodemanager.linux-container-executor.cgroups.strict-resource-usage": "false",
-                    "yarn.resourcemanager.resource-tracker.address": "%HOSTGROUP::host_group_1%:8025",
+                    "yarn.resourcemanager.resource-tracker.address": "master.cdp:8025",
                     "hadoop.registry.dns.zone-subnet": "172.17.0.0",
                     "yarn.nodemanager.delete.debug-delay-sec": "0",
                     "yarn.resourcemanager.fs.state-store.retry-policy-spec": "2000, 500",
@@ -1628,17 +1623,17 @@
                     "yarn.resourcemanager.recovery.enabled": "true",
                     "yarn.timeline-service.entity-group-fs-store.group-id-plugin-classpath": "",
                     "yarn.nodemanager.webapp.cross-origin.enabled": "true",
-                    "yarn.resourcemanager.scheduler.address": "%HOSTGROUP::host_group_1%:8030",
+                    "yarn.resourcemanager.scheduler.address": "master.cdp:8030",
                     "yarn.nodemanager.resource-plugins.gpu.allowed-gpu-devices": "",
                     "yarn.timeline-service.leveldb-timeline-store.start-time-write-cache-size": "10000",
                     "yarn.timeline-service.ttl-ms": "2678400000",
                     "yarn.nodemanager.health-checker.script.timeout-ms": "60000",
                     "yarn.nodemanager.aux-services.spark2_shuffle.class": "org.apache.spark.network.yarn.YarnShuffleService",
-                    "yarn.log.server.url": "http://%HOSTGROUP::host_group_1%:19888/jobhistory/logs",
+                    "yarn.log.server.url": "http://master.cdp:19888/jobhistory/logs",
                     "yarn.timeline-service.entity-group-fs-store.group-id-plugin-classes": "org.apache.hadoop.yarn.applications.distributedshell.DistributedShellTimelinePlugin",
-                    "yarn.resourcemanager.address": "%HOSTGROUP::host_group_1%:8050",
+                    "yarn.resourcemanager.address": "master.cdp:8050",
                     "yarn.timeline-service.recovery.enabled": "true",
-                    "yarn.timeline-service.reader.webapp.address": "%HOSTGROUP::host_group_1%:8198",
+                    "yarn.timeline-service.reader.webapp.address": "master.cdp:8198",
                     "yarn.nodemanager.recovery.dir": "{{yarn_log_dir_prefix}}/nodemanager/recovery-state",
                     "yarn.resourcemanager.scheduler.monitor.enable": "true",
                     "yarn.resourcemanager.webapp.cross-origin.enabled": "true",
@@ -1649,7 +1644,7 @@
                     "hadoop.registry.dns.domain-name": "EXAMPLE.COM",
                     "yarn.nodemanager.admin-env": "MALLOC_ARENA_MAX=$MALLOC_ARENA_MAX",
                     "yarn.resourcemanager.system-metrics-publisher.dispatcher.pool-size": "10",
-                    "yarn.timeline-service.reader.webapp.https.address": "%HOSTGROUP::host_group_1%:8199",
+                    "yarn.timeline-service.reader.webapp.https.address": "master.cdp:8199",
                     "yarn.acl.enable": "false",
                     "manage.include.files": "false",
                     "yarn.resourcemanager.ha.enabled": "false",
@@ -1680,7 +1675,7 @@
                     "yarn.timeline-service.entity-group-fs-store.done-dir": "/ats/done/",
                     "hadoop.registry.dns.enabled": "true",
                     "yarn.nodemanager.disk-health-checker.max-disk-utilization-per-disk-percentage": "90",
-                    "hadoop.registry.zk.quorum": "%HOSTGROUP::host_group_2%:2181,%HOSTGROUP::host_group_3%:2181,%HOSTGROUP::host_group_1%:2181",
+                    "hadoop.registry.zk.quorum": "node1.cdp:2181,node2.cdp:2181,master.cdp:2181",
                     "yarn.nodemanager.log-aggregation.roll-monitoring-interval-seconds": "3600",
                     "yarn.timeline-service.hbase-schema.prefix": "prod.",
                     "hadoop.http.cross-origin.allowed-origins": "{{cross_origins}}",
@@ -1690,12 +1685,12 @@
                     "yarn.nodemanager.runtime.linux.docker.privileged-containers.acl": "",
                     "yarn.timeline-service.state-store-class": "org.apache.hadoop.yarn.server.timeline.recovery.LeveldbTimelineStateStore",
                     "yarn.nodemanager.bind-host": "0.0.0.0",
-                    "yarn.resourcemanager.hostname": "%HOSTGROUP::host_group_1%",
+                    "yarn.resourcemanager.hostname": "master.cdp",
                     "yarn.nodemanager.resource-plugins": "",
                     "yarn.resourcemanager.monitor.capacity.preemption.total_preemption_per_round": "0.25",
                     "yarn.timeline-service.versions": "1.5f,2.0f",
                     "yarn.resourcemanager.connect.retry-interval.ms": "30000",
-                    "yarn.timeline-service.webapp.address": "%HOSTGROUP::host_group_1%:8188",
+                    "yarn.timeline-service.webapp.address": "master.cdp:8188",
                     "yarn.scheduler.minimum-allocation-mb": "1024",
                     "yarn.timeline-service.entity-group-fs-store.summary-store": "org.apache.hadoop.yarn.server.timeline.RollingLevelDBTimelineStore",
                     "yarn.nodemanager.health-checker.interval-ms": "135000",
@@ -1707,8 +1702,8 @@
                     "yarn.scheduler.maximum-allocation-mb": "3072",
                     "yarn.nodemanager.vmem-check-enabled": "false",
                     "yarn.timeline-service.entity-group-fs-store.scan-interval-seconds": "60",
-                    "yarn.resourcemanager.webapp.https.address": "%HOSTGROUP::host_group_1%:8090",
-                    "yarn.timeline-service.webapp.https.address": "%HOSTGROUP::host_group_1%:8190",
+                    "yarn.resourcemanager.webapp.https.address": "master.cdp:8090",
+                    "yarn.timeline-service.webapp.https.address": "master.cdp:8190",
                     "yarn.nodemanager.resource.percentage-physical-cpu-limit": "80",
                     "yarn.nodemanager.vmem-pmem-ratio": "2.1",
                     "yarn.nodemanager.linux-container-executor.nonsecure-mode.limit-users": "true",
@@ -1814,7 +1809,7 @@
                     "xasecure.audit.destination.hdfs": "true",
                     "xasecure.audit.destination.solr": "true",
                     "xasecure.audit.destination.solr.batch.filespool.dir": "/var/log/hadoop/hdfs/audit/solr/spool",
-                    "xasecure.audit.destination.hdfs.dir": "hdfs://%HOSTGROUP::host_group_1%:8020/ranger/audit",
+                    "xasecure.audit.destination.hdfs.dir": "hdfs://master.cdp:8020/ranger/audit",
                     "xasecure.audit.destination.solr.zookeepers": "master.cdp:2181,node1.cdp:2181,node2.cdp:2181/infra-solr",
                     "xasecure.audit.provider.summary.enabled": "false",
                     "xasecure.audit.destination.solr.urls": "",
@@ -1899,7 +1894,7 @@
                     "xasecure.audit.destination.hdfs": "true",
                     "xasecure.audit.destination.solr": "true",
                     "xasecure.audit.destination.solr.batch.filespool.dir": "/var/log/kafka/audit/solr/spool",
-                    "xasecure.audit.destination.hdfs.dir": "hdfs://%HOSTGROUP::host_group_1%:8020/ranger/audit",
+                    "xasecure.audit.destination.hdfs.dir": "hdfs://master.cdp:8020/ranger/audit",
                     "xasecure.audit.destination.solr.zookeepers": "master.cdp:2181,node1.cdp:2181,node2.cdp:2181/infra-solr",
                     "xasecure.audit.provider.summary.enabled": "true",
                     "ranger.plugin.kafka.ambari.cluster.name": "{{cluster_name}}",
@@ -2025,7 +2020,7 @@
                     "mapred.local.dir": "/hadoop/mapred,/var/oled/hadoop/mapred",
                     "mapreduce.cluster.administrators": " hadoop",
                     "mapreduce.reduce.shuffle.fetch.retry.timeout-ms": "30000",
-                    "mapreduce.jobhistory.address": "%HOSTGROUP::host_group_1%:10020",
+                    "mapreduce.jobhistory.address": "master.cdp:10020",
                     "mapreduce.map.sort.spill.percent": "0.7",
                     "mapreduce.map.memory.mb": "1024",
                     "mapreduce.admin.reduce.child.java.opts": "-server -XX:NewRatio=8 -Djava.net.preferIPv4Stack=true -Dhdp.version=${odp.version}",
@@ -2037,7 +2032,7 @@
                     "mapreduce.framework.name": "yarn",
                     "mapreduce.reduce.shuffle.parallelcopies": "30",
                     "mapreduce.jobhistory.done-dir": "/mr-history/done",
-                    "mapreduce.jobhistory.webapp.address": "%HOSTGROUP::host_group_1%:19888",
+                    "mapreduce.jobhistory.webapp.address": "master.cdp:19888",
                     "mapreduce.reduce.shuffle.fetch.retry.enabled": "1",
                     "mapreduce.task.io.sort.factor": "100",
                     "mapreduce.jobhistory.recovery.store.leveldb.path": "/hadoop/mapreduce/jhs",
@@ -2103,7 +2098,7 @@
                     "hive.metastore.execute.setugi": "true",
                     "hive.tez.smb.number.waves": "0.5",
                     "hive.server2.authentication.spnego.keytab": "HTTP/_HOST@EXAMPLE.COM",
-                    "hive.zookeeper.quorum": "%HOSTGROUP::host_group_1%:2181,%HOSTGROUP::host_group_2%:2181,%HOSTGROUP::host_group_3%:2181",
+                    "hive.zookeeper.quorum": "master.cdp:2181,node1.cdp:2181,node2.cdp:2181",
                     "hive.mapjoin.bucket.cache.size": "10000",
                     "hive.metastore.kerberos.principal": "hive/_HOST@EXAMPLE.COM",
                     "hive.metastore.event.listeners": "",
@@ -2181,8 +2176,8 @@
                     "hive.metastore.connect.retries": "24",
                     "hive.optimize.reducededuplication.min.reducer": "4",
                     "hive.tez.input.format": "org.apache.hadoop.hive.ql.io.HiveInputFormat",
-                    "hive.cluster.delegation.token.store.zookeeper.connectString": "%HOSTGROUP::host_group_1%:2181,%HOSTGROUP::host_group_2%:2181,%HOSTGROUP::host_group_3%:2181",
-                    "hive.metastore.uris": "thrift://%HOSTGROUP::host_group_2%:9083",
+                    "hive.cluster.delegation.token.store.zookeeper.connectString": "master.cdp:2181,node1.cdp:2181,node2.cdp:2181",
+                    "hive.metastore.uris": "thrift://node1.cdp:9083",
                     "hive.server2.max.start.attempts": "5",
                     "hive.exec.dynamic.partition.mode": "nonstrict",
                     "hive.server2.thrift.max.worker.threads": "500",
@@ -2210,7 +2205,7 @@
                     "hive.server2.thrift.http.port": "10001",
                     "hive.server2.webui.cors.allowed.headers": "X-Requested-With,Content-Type,Accept,Origin,X-Requested-By,x-requested-by",
                     "hive.server2.logging.operation.log.location": "/tmp/hive/operation_logs",
-                    "javax.jdo.option.ConnectionURL": "jdbc:postgresql://%HOSTGROUP::host_group_1%:5432/hive",
+                    "javax.jdo.option.ConnectionURL": "jdbc:postgresql://master.cdp:5432/hive",
                     "hive.materializedview.rewriting.incremental": "false",
                     "hive.map.aggr.hash.min.reduction": "0.5",
                     "hive.merge.size.per.task": "256000000",
@@ -2354,14 +2349,7 @@
                 }
             }
         },
-        {
-            "livy2-client-conf": {
-                "properties_attributes": {},
-                "properties": {
-                    "livy.rsc.launcher.address": " "
-                }
-            }
-        },
+        {},
         {
             "ssl-client": {
                 "properties_attributes": {},
@@ -2384,7 +2372,7 @@
                     "xasecure.audit.destination.hdfs": "true",
                     "xasecure.audit.destination.solr": "true",
                     "xasecure.audit.destination.solr.batch.filespool.dir": "/var/log/hbase/audit/solr/spool",
-                    "xasecure.audit.destination.hdfs.dir": "hdfs://%HOSTGROUP::host_group_1%:8020/ranger/audit",
+                    "xasecure.audit.destination.hdfs.dir": "hdfs://master.cdp:8020/ranger/audit",
                     "xasecure.audit.destination.solr.zookeepers": "master.cdp:2181,node1.cdp:2181,node2.cdp:2181/infra-solr",
                     "xasecure.audit.provider.summary.enabled": "true",
                     "xasecure.audit.destination.solr.urls": ""
@@ -2718,6 +2706,8 @@
                     "hive.log.level": "INFO",
                     "hive_database_name": "hive",
                     "hive_database_type": "postgres",
+                    "hive_database_host": "master.cdp",
+                    "hive_database_password": "hive",
                     "enable_heap_dump": "false",
                     "hive_user_nofile_limit": "32000",
                     "alert_ldap_username": "",
@@ -2759,9 +2749,6 @@
                 },
                 {
                     "name": "HIVE_SERVER"
-                },
-                {
-                    "name": "MYSQL_SERVER"
                 },
                 {
                     "name": "NFS_GATEWAY"
@@ -2929,9 +2916,6 @@
                 },
                 {
                     "name": "HBASE_CLIENT"
-                },
-                {
-                    "name": "LIVY2_SERVER"
                 },
                 {
                     "name": "HIVE_CLIENT"
