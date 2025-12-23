@@ -42,7 +42,6 @@ logs/
 *.log
 
 # Text
-*.txt
 *.md
 *.rst
-/assets/text/
+

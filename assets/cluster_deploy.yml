@@ -13,42 +13,77 @@
   tasks:
   - name: Attempt Deployment
     block:
-      - name: Run Deployment Tasks (First Attempt)
-        include_tasks: deploy_tasks.yml
-        vars:
-          deploy_retries: 100
+    - name: Run Deployment Tasks (First Attempt)
+      include_tasks: deploy_tasks.yml
+      vars:
+        deploy_retries: 100
 
     rescue:
-      - name: Deployment Failed - Starting Recovery Procedure
-        debug:
-          msg: "Deployment failed. Initiating cleanup and retry sequence..."
+    - name: Deployment Failed - Starting Recovery Procedure
+      debug:
+        msg: "Deployment failed. Initiating cleanup and retry sequence..."
 
-      - name: Stop Ambari Server
-        shell: ambari-server stop
-        ignore_errors: yes
+    - name: Stop Ambari Server
+      shell: ambari-server stop
+      ignore_errors: yes
 
-      - name: Reset Ambari Server
-        shell: ambari-server reset --silent
-        ignore_errors: yes
+    - name: Reset Ambari Server
+      shell: ambari-server reset --silent
+      ignore_errors: yes
 
-      - name: Remove Phoenix PID file
-        shell: rm -f /var/run/hbase/phoenix-hbase-queryserver.pid
-        ignore_errors: yes
+    - name: Remove Phoenix PID file
+      shell: rm -f /var/run/hbase/phoenix-hbase-queryserver.pid
+      ignore_errors: yes
 
-      - name: Run HDFS Corrections
-        shell: /root/hdfscorrections.sh
-        ignore_errors: yes
+    - name: Run HDFS Corrections
+      shell: /root/hdfscorrections.sh
+      ignore_errors: yes
 
-      - name: Run Hive Setup
-        shell: /root/hivesetup.sh
-        ignore_errors: yes
+    - name: Run Hive Setup
+      shell: /root/hivesetup.sh
+      ignore_errors: yes
 
-      - name: Ensure Ambari Server is started
-        shell: ambari-server start
-        ignore_errors: yes
+    - name: Ensure Ambari Server is started
+      shell: ambari-server start
+      ignore_errors: yes
 
+    - name: Second Deployment Attempt
+      block:
       - name: Run Deployment Tasks (Retry after Reset)
         include_tasks: deploy_tasks.yml
         vars:
           deploy_retries: 120
 
+      rescue:
+      - name: Second Deployment Failed - Starting Recovery Procedure
+        debug:
+          msg: "Second deployment attempt failed. Initiating cleanup and final retry sequence..."
+
+      - name: Stop Ambari Server (2nd retry)
+        shell: ambari-server stop
+        ignore_errors: yes
+
+      - name: Reset Ambari Server (2nd retry)
+        shell: ambari-server reset --silent
+        ignore_errors: yes
+
+      - name: Remove Phoenix PID file (2nd retry)
+        shell: rm -f /var/run/hbase/phoenix-hbase-queryserver.pid
+        ignore_errors: yes
+
+      - name: Run HDFS Corrections (2nd retry)
+        shell: /root/hdfscorrections.sh
+        ignore_errors: yes
+
+      - name: Run Hive Setup (2nd retry)
+        shell: /root/hivesetup.sh
+        ignore_errors: yes
+
+      - name: Ensure Ambari Server is started (2nd retry)
+        shell: ambari-server start
+        ignore_errors: yes
+
+      - name: Run Deployment Tasks (Final Attempt)
+        include_tasks: deploy_tasks.yml
+        vars:
+          deploy_retries: 120

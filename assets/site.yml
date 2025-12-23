@@ -65,6 +65,34 @@
       state: started
       enabled: yes
 
+  - name: Check if swap file exists
+    stat:
+      path: /swapfile
+    register: swap_file_check
+
+  - name: Create swap file (4GB)
+    command: dd if=/dev/zero of=/swapfile bs=1G count=4
+    when: not swap_file_check.stat.exists
+
+  - name: Set permissions on swap file
+    file:
+      path: /swapfile
+      mode: '0600'
+
+  - name: Make swap file
+    command: mkswap /swapfile
+    when: not swap_file_check.stat.exists
+
+  - name: Enable swap
+    command: swapon /swapfile
+    when: not swap_file_check.stat.exists
+
+  - name: Persist swap in fstab
+    lineinfile:
+      path: /etc/fstab
+      line: '/swapfile none swap sw 0 0'
+      state: present
+
   - name: Ensure /etc/hosts has cluster FQDNs
     ansible.builtin.blockinfile:
       path: /etc/hosts
