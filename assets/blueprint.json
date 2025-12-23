@@ -69,6 +69,13 @@
             }
         },
         {
+            "hive-site": {
+                "properties": {
+                    "javax.jdo.option.ConnectionPassword": "HiveUserMeta2025"
+                }
+            }
+        },
+        {
             "nifi-ambari-ssl-config": {
                 "properties_attributes": {},
                 "properties": {
