@@ -164,6 +164,14 @@
             }
         },
         {
+            "nifi-properties": {
+                "properties": {
+                    "nifi.sensitive.props.key": "AmbariSecrets2025",
+                    "nifi.sensitive.props.algorithm": "PBEWITHSHA256AND256BITAES-CBC-BC"
+                }
+            }
+        },
+        {
             "hadoop-policy": {
                 "properties_attributes": {},
                 "properties": {
