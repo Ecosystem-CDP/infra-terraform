@@ -111,6 +111,10 @@
     ansible.builtin.get_url:
       url: https://clemlabs.s3.eu-west-3.amazonaws.com/RPM-GPG-KEY-SHA256-Jenkins
       dest: /tmp/RPM-GPG-KEY-SHA256-Jenkins
+    register: download_jenkins_key
+    until: download_jenkins_key is success
+    retries: 5
+    delay: 10
   - name: rpm --import jenkins gpg key
     ansible.builtin.command: rpm --import /tmp/RPM-GPG-KEY-SHA256-Jenkins
     changed_when: false
@@ -119,11 +123,19 @@
     ansible.builtin.get_url:
       url: https://clemlabs.s3.eu-west-3.amazonaws.com/centos9-aarch64/odp-release/1.2.2.0-128/odp.repo
       dest: /etc/yum.repos.d/odp.repo
+    register: download_odp_repo
+    until: download_odp_repo is success
+    retries: 5
+    delay: 10
 
   - name: Install Ambari repo
     ansible.builtin.get_url:
       url: https://clemlabs.s3.eu-west-3.amazonaws.com/centos9-aarch64/ambari-release/2.7.9.0.0-61/ambari.repo
       dest: /etc/yum.repos.d/ambari.repo
+    register: download_ambari_repo
+    until: download_ambari_repo is success
+    retries: 5
+    delay: 10
 
   - name: Install ambari-agent (all nodes)
     ansible.builtin.yum:
@@ -464,6 +476,10 @@
       url: https://repo1.maven.org/maven2/mysql/mysql-connector-java/8.0.28/mysql-connector-java-8.0.28.jar
       dest: /usr/share/java/mysql-connector-java.jar
       mode: '0644'
+    register: download_mysql_connector
+    until: download_mysql_connector is success
+    retries: 5
+    delay: 10
 
   - name: Ensure MySQL connector in Ambari resources
     ansible.builtin.copy:
