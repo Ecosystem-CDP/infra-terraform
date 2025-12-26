@@ -86,3 +86,12 @@ variable "PrivateIP" {
 variable "IKEversion" {
   default = "V2"
 }
+
+# IP público do cliente que acessa as UIs via navegador
+# IMPORTANTE: Este é o IP do SEU notebook/computador, não da máquina OCI
+# Obtenha seu IP em: https://api.ipify.org ou https://whatismyip.com
+variable "my_client_ip" {
+  description = "IP público da sua máquina (notebook/desktop) que acessará as interfaces web. Obtenha em https://api.ipify.org"
+  type        = string
+  # SEM default - força usuário a fornecer o IP ao criar a Stack
+}
