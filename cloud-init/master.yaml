@@ -48,375 +48,8 @@ write_files:
     ansible_become=True
     ansible_ssh_private_key_file=/root/.ssh/id_rsa
 
-- path: /root/site.yml
-  permissions: '0644'
-  content: |
-    ---
-    - name: Common config for all nodes
-      hosts: all
-      become: yes
-      gather_facts: false
-      pre_tasks:
-        - name: Ensure python3 exists on targets (raw bootstrap)
-          ansible.builtin.raw: |
-            test -x /usr/bin/python3 || (command -v dnf >/dev/null && sudo dnf -y install python3 || sudo yum -y install python3)
-          changed_when: false
-      vars:
-        hosts_lines:
-          - "10.0.0.2   master.cdp"
-          - "10.0.0.3   node1.cdp"
-          - "10.0.0.4   node2.cdp"
-          - "10.0.0.5   node3.cdp"
-      tasks:
-        - name: Disable SELinux (runtime)
-          command: setenforce 0
-          failed_when: false
-          changed_when: false
-
-        - name: Ensure SELinux disabled persistently
-          ansible.builtin.replace:
-            path: /etc/selinux/config
-            regexp: '^SELINUX=.*'
-            replace: 'SELINUX=disabled'
-
-        - name: Stop and disable firewalld
-          ansible.builtin.service:
-            name: firewalld
-            state: stopped
-            enabled: no
-
-        - name: Ensure packages present
-          ansible.builtin.yum:
-            name:
-              - curl
-              - unzip
-              - tar
-              - wget
-              - sed
-              - gcc
-              - openssl-devel
-              - openssl
-              - krb5-workstation
-              - krb5-libs
-              - python3
-              - java-1.8.0-openjdk-devel
-              - snappy
-              - openssh-server
-              - openssh-clients
-            state: present
-            update_cache: yes
-
-        - name: Ensure chronyd enabled and running
-          ansible.builtin.service:
-            name: chronyd
-            state: started
-            enabled: yes
-
-        - name: Ensure /etc/hosts has cluster FQDNs
-          ansible.builtin.blockinfile:
-            path: /etc/hosts
-            block: |
-              {% for line in hosts_lines %}
-              {{ line }}
-              {% endfor %}
-            marker: "# {mark} CDP_CLUSTER_HOSTS"
-
-    - name: Ambari repos and agent on all nodes
-      hosts: all
-      become: yes
-      gather_facts: false
-      tasks:
-        - name: Import Jenkins GPG key (used by repo)
-          ansible.builtin.get_url:
-            url: https://clemlabs.s3.eu-west-3.amazonaws.com/RPM-GPG-KEY-SHA256-Jenkins
-            dest: /tmp/RPM-GPG-KEY-SHA256-Jenkins
-        - name: rpm --import jenkins gpg key
-          ansible.builtin.command: rpm --import /tmp/RPM-GPG-KEY-SHA256-Jenkins
-          changed_when: false
-
-        - name: Install ODP repo
-          ansible.builtin.get_url:
-            url: https://clemlabs.s3.eu-west-3.amazonaws.com/centos9-aarch64/odp-release/1.2.2.0-128/odp.repo
-            dest: /etc/yum.repos.d/odp.repo
-
-        - name: Install Ambari repo
-          ansible.builtin.get_url:
-            url: https://clemlabs.s3.eu-west-3.amazonaws.com/centos9-aarch64/ambari-release/2.7.9.0.0-61/ambari.repo
-            dest: /etc/yum.repos.d/ambari.repo
-
-        - name: Update packages
-          ansible.builtin.yum:
-            name: '*'
-            state: latest
-            update_cache: yes
-
-        - name: Install ambari-agent (all nodes)
-          ansible.builtin.yum:
-            name: ambari-agent.aarch64
-            state: present
-
-    - name: Configure master node
-      hosts: master
-      become: yes
-      gather_facts: false
-      tasks:
-        - name: Install server deps
-          ansible.builtin.yum:
-            name:
-              - odp-select.aarch64
-              - ambari-server.aarch64
-              - postgresql-server
-              - postgresql-contrib
-            state: present
-
-        - name: Initialize PostgreSQL if needed
-          ansible.builtin.shell: |
-            if [ ! -d /var/lib/pgsql/data/base ]; then
-              postgresql-setup --initdb || true
-            fi
-          args:
-            executable: /bin/bash
-
-        - name: Ambari server setup (non-interactive)
-          ansible.builtin.command:
-            argv: ["ambari-server", "setup", "-s", "-j", "/usr/lib/jvm/java-1.8.0-openjdk"]
-          register: ambari_setup
-          changed_when: ambari_setup.rc == 0
-          failed_when: ambari_setup.rc not in [0]
-
-        - name: Start ambari-server
-          ansible.builtin.service:
-            name: ambari-server
-            state: started
-            enabled: yes
-
-        - name: Start ambari-agent (master)
-          ansible.builtin.service:
-            name: ambari-agent
-            state: started
-            enabled: yes
-
-        - name: Create console user and set password
-          ansible.builtin.user:
-            name: console
-            groups: wheel
-            append: yes
-            state: present
-        - name: Set console password
-          ansible.builtin.shell: echo 'console:${console_password}' | chpasswd
-
-        - name: Append environment variables to root .bashrc
-          ansible.builtin.blockinfile:
-            path: /root/.bashrc
-            marker: "# {mark} ODP_EXPORTS"
-            block: |
-              export ZOOKEEPER_HOME="/usr/odp/1.2.2.0-128/zookeeper"
-              export PATH=$PATH:$ZOOKEEPER_HOME/bin
-              export KAFKA_HOME="/usr/odp/1.2.2.0-128/kafka"
-              export PATH=$PATH:$KAFKA_HOME/bin
-              export NIFI_HOME="/usr/odp/1.2.2.0-128/nifi"
-              export PATH=$PATH:$NIFI_HOME/bin
-              export SPARK_HOME="/usr/odp/1.2.2.0-128/spark3"
-              export PATH=$PATH:$SPARK_HOME/bin
-              export HIVE_HOME="/usr/odp/1.2.2.0-128/hive"
-              export PATH=$PATH:$HIVE_HOME/bin
-
-        - name: Create hdfscorrections.sh
-          ansible.builtin.copy:
-            dest: /root/hdfscorrections.sh
-            mode: '0755'
-            content: |
-              #!/bin/bash
-              ambari-server stop
-              sudo -u hdfs hdfs dfs -chown root:root /odp/apps/1.2.2.0-128/hbase
-              sudo -u hdfs hdfs dfs -chmod 755 /odp/apps/1.2.2.0-128/hbase
-              sudo -u hdfs hdfs dfs -put /var/lib/ambari-agent/tmp/yarn-ats/1.2.2.0-128/hbase.tar.gz /odp/apps/1.2.2.0-128/hbase/
-              sudo -u hdfs hdfs dfs -chmod 555 /odp/apps/1.2.2.0-128/hbase
-              ambari-server restart
-
-        - name: Create hivesetup.sh
-          ansible.builtin.copy:
-            dest: /root/hivesetup.sh
-            mode: '0755'
-            content: |
-              #!/bin/bash
-              ambari-server stop
-              sed -i "s/^#port = 5432/port = 5432/" /var/lib/pgsql/data/postgresql.conf
-              echo "host all hive 10.0.0.2/32 trust" | tee -a /var/lib/pgsql/data/pg_hba.conf
-              sudo -u postgres psql -U postgres -c "CREATE DATABASE hive;" || true
-              sudo -u postgres psql -U postgres -c "CREATE USER hive WITH PASSWORD '${hive_legacy_password}';" || true
-              sudo -u postgres psql -U postgres -c "GRANT ALL PRIVILEGES ON DATABASE hive TO hive;" || true
-              systemctl restart postgresql
-              yum install -y postgresql-jdbc.noarch
-              ambari-server setup -j /usr/lib/jvm/java-1.8.0-openjdk --jdbc-db=postgres --jdbc-driver=/usr/share/java/postgresql-jdbc.jar
-              ambari-server start
-
-        - name: Create deploy_tasks.yml
-          ansible.builtin.copy:
-            dest: /root/deploy_tasks.yml
-            mode: '0644'
-            content: |
-              {% raw %}
-              - name: Wait for Ambari Server to be ready
-                uri:
-                  url: "{{ ambari_url }}/check"
-                  user: "{{ ambari_user }}"
-                  password: "{{ ambari_pass }}"
-                  force_basic_auth: yes
-                  headers:
-                    X-Requested-By: "ambari"
-                  return_content: no
-                register: ambari_check
-                until: ambari_check.status == 200
-                retries: 30
-                delay: 10
-                ignore_errors: yes
-
-              - name: Wait for all 4 hosts to be registered
-                uri:
-                  url: "{{ ambari_url }}/hosts"
-                  user: "{{ ambari_user }}"
-                  password: "{{ ambari_pass }}"
-                  force_basic_auth: yes
-                  headers:
-                    X-Requested-By: "ambari"
-                  return_content: yes
-                register: hosts_response
-                until: hosts_response.status == 200 and (hosts_response.content | from_json)['items'] | length == 4
-                retries: 60
-                delay: 10
-                ignore_errors: yes
-
-              - name: Delete existing Cluster
-                uri:
-                  url: "{{ ambari_url }}/clusters/{{ cluster_name }}"
-                  method: DELETE
-                  user: "{{ ambari_user }}"
-                  password: "{{ ambari_pass }}"
-                  force_basic_auth: yes
-                  headers:
-                    X-Requested-By: "ambari"
-                  status_code: [ 200, 202, 404 ]
-
-              - name: Wait for Cluster to be deleted
-                uri:
-                  url: "{{ ambari_url }}/clusters/{{ cluster_name }}"
-                  method: GET
-                  user: "{{ ambari_user }}"
-                  password: "{{ ambari_pass }}"
-                  force_basic_auth: yes
-                  headers:
-                    X-Requested-By: "ambari"
-                  status_code: [ 404 ]
-                register: cluster_gone
-                until: cluster_gone.status == 404
-                retries: 60
-                delay: 5
-
-              - name: Register VDF
-                uri:
-                  url: "{{ ambari_url }}/version_definitions"
-                  method: POST
-                  user: "{{ ambari_user }}"
-                  password: "{{ ambari_pass }}"
-                  force_basic_auth: yes
-                  headers:
-                    X-Requested-By: "ambari"
-                  body:
-                    VersionDefinition:
-                      version_url: "file://{{ vdf_file }}"
-                  body_format: json
-                  status_code: [ 201, 409, 500 ]
-                register: vdf_registration
-                failed_when: vdf_registration.status != 201 and "Duplicate" not in vdf_registration.json.message|default("") and vdf_registration.status != 500
-
-              - name: Delete existing Blueprint
-                uri:
-                  url: "{{ ambari_url }}/blueprints/odp-blueprint"
-                  method: DELETE
-                  user: "{{ ambari_user }}"
-                  password: "{{ ambari_pass }}"
-                  force_basic_auth: yes
-                  headers:
-                    X-Requested-By: "ambari"
-                  status_code: [ 200, 404 ]
-
-              - name: Register Blueprint
-                uri:
-                  url: "{{ ambari_url }}/blueprints/odp-blueprint?validate_topology=false"
-                  method: POST
-                  user: "{{ ambari_user }}"
-                  password: "{{ ambari_pass }}"
-                  force_basic_auth: yes
-                  headers:
-                    X-Requested-By: "ambari"
-                  body: "{{ lookup('file', blueprint_file) }}"
-                  body_format: json
-                  status_code: [ 201, 409 ]
-
-              - name: Create Cluster
-                uri:
-                  url: "{{ ambari_url }}/clusters/{{ cluster_name }}"
-                  method: POST
-                  user: "{{ ambari_user }}"
-                  password: "{{ ambari_pass }}"
-                  force_basic_auth: yes
-                  headers:
-                    X-Requested-By: "ambari"
-                  body: "{{ lookup('file', cluster_template_file) }}"
-                  body_format: json
-                  status_code: 202
-                register: cluster_request
-
-              - name: Monitor Cluster Creation
-                uri:
-                  url: "{{ cluster_request.json.href }}"
-                  user: "{{ ambari_user }}"
-                  password: "{{ ambari_pass }}"
-                  force_basic_auth: yes
-                  headers:
-                    X-Requested-By: "ambari"
-                  return_content: yes
-                register: request_status
-                until: (request_status.content | from_json).Requests.request_status == 'COMPLETED' or (request_status.content | from_json).Requests.request_status == 'FAILED'
-                retries: "{{ deploy_retries | default(100) }}"
-                delay: 30
-                when: cluster_request.status == 202
-
-              - name: Fail if cluster creation failed
-                fail:
-                  msg: "Cluster creation failed."
-                when: cluster_request.status == 202 and (request_status.content | from_json).Requests.request_status == 'FAILED'
-              {% endraw %}
-
-    - name: Configure workers
-      hosts: workers
-      become: yes
-      gather_facts: false
-      tasks:
-        - name: Install odp-select and ambari-agent
-          ansible.builtin.yum:
-            name:
-              - odp-select.aarch64
-              - ambari-agent.aarch64
-            state: present
-
-        - name: Point ambari-agent to master
-          ansible.builtin.lineinfile:
-            path: /etc/ambari-agent/conf/ambari-agent.ini
-            regexp: '^hostname='
-            line: 'hostname=master.cdp'
-            create: yes
-
-        - name: Reload systemd to recognize ambari-agent init script
-          ansible.builtin.command: systemctl daemon-reload
-          changed_when: false
-
-        - name: Ensure ambari-agent is running and enabled
-          ansible.builtin.service:
-            name: ambari-agent
-            state: started
-            enabled: yes
+# NOTE: /root/site.yml, /root/blueprint.json, /root/cluster-template.json, and /root/cluster_deploy.yml
+# are uploaded by Terraform provisioners AFTER VM creation. Do NOT embed them here to avoid race conditions.
 
 - path: /root/run-ansible.sh
   permissions: '0755'
@@ -427,9 +60,54 @@ write_files:
     export PATH=$PATH:/usr/local/bin
     KEY=/root/.ssh/id_rsa
     HOSTS=(node1.cdp node2.cdp node3.cdp)
+
     echo "[run-ansible] Preparando log do Ansible..."
     mkdir -p /var/log/ansible || true
     chmod 755 /var/log/ansible || true
+
+    # ============================================================================
+    # WAIT FOR PROVISIONER FILES
+    # ============================================================================
+    echo "[run-ansible] Aguardando Terraform provisioners copiarem arquivos necessários..."
+    echo "[run-ansible] Arquivos requeridos: site.yml, blueprint.json, cluster-template.json, cluster_deploy.yml"
+
+    REQUIRED_FILES=("/root/site.yml" "/root/blueprint.json" "/root/cluster-template.json" "/root/cluster_deploy.yml")
+    MAX_WAIT=600  # 10 minutos máximo
+    ELAPSED=0
+
+    while true; do
+      ALL_EXIST=true
+      for FILE in "$${REQUIRED_FILES[@]}"; do
+        if [ ! -f "$FILE" ]; then
+          ALL_EXIST=false
+          break
+        fi
+      done
+      
+      if [ "$ALL_EXIST" = true ]; then
+        echo "[run-ansible] ✓ Todos os arquivos detectados!"
+        break
+      fi
+      
+      if [ $ELAPSED -ge $MAX_WAIT ]; then
+        echo "[run-ansible] ✗ TIMEOUT aguardando arquivos dos provisioners!"
+        echo "[run-ansible] Arquivos faltando:"
+        for FILE in "$${REQUIRED_FILES[@]}"; do
+          if [ ! -f "$FILE" ]; then
+            echo "  - $FILE (AUSENTE)"
+          fi
+        done
+        exit 1
+      fi
+      
+      echo "[run-ansible] Aguardando... ($ELAPSED/$MAX_WAIT segundos)"
+      sleep 5
+      ELAPSED=$((ELAPSED + 5))
+    done
+
+    # ============================================================================
+    # WAIT FOR WORKER SSH ACCESS
+    # ============================================================================
     echo "[run-ansible] Aguardando SSH dos workers..."
     for h in "$${HOSTS[@]}"; do
       echo "[run-ansible] Esperando $h:22 ficar disponível"
@@ -448,6 +126,10 @@ write_files:
         sleep 5
       done
     done
+
+    # ============================================================================
+    # EXECUTE ANSIBLE PLAYBOOKS
+    # ============================================================================
     echo "[run-ansible] Executando playbook de configuração..."
     ANSIBLE_NOCOLOR=1 ansible-playbook /root/site.yml
 
