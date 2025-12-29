@@ -91,6 +91,7 @@ resource "random_password" "console_user" {
 
 output "PASSWORDS_GENERATED" {
   description = "⚠️ IMPORTANTE: Senhas geradas para o cluster CDP - Salve em local seguro!"
+  sensitive   = true
   value       = <<-EOT
   
   ╔══════════════════════════════════════════════════════════════════════╗
