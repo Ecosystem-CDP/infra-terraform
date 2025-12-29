@@ -203,7 +203,7 @@ write_files:
             append: yes
             state: present
         - name: Set console password
-          ansible.builtin.shell: echo 'console:1aB@2bC#' | chpasswd
+          ansible.builtin.shell: echo 'console:${console_password}' | chpasswd
 
         - name: Append environment variables to root .bashrc
           ansible.builtin.blockinfile:
@@ -244,7 +244,7 @@ write_files:
               sed -i "s/^#port = 5432/port = 5432/" /var/lib/pgsql/data/postgresql.conf
               echo "host all hive 10.0.0.2/32 trust" | tee -a /var/lib/pgsql/data/pg_hba.conf
               sudo -u postgres psql -U postgres -c "CREATE DATABASE hive;" || true
-              sudo -u postgres psql -U postgres -c "CREATE USER hive WITH PASSWORD 'hive';" || true
+              sudo -u postgres psql -U postgres -c "CREATE USER hive WITH PASSWORD '${hive_legacy_password}';" || true
               sudo -u postgres psql -U postgres -c "GRANT ALL PRIVILEGES ON DATABASE hive TO hive;" || true
               systemctl restart postgresql
               yum install -y postgresql-jdbc.noarch
