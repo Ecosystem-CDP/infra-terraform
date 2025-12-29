@@ -42,6 +42,5 @@ logs/
 *.log
 
 # Text
-*.md
 *.rst
 
