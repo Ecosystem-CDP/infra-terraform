@@ -1,33 +1,3 @@
-# ============================================================================
-# Template Rendering with Passwords
-# ============================================================================
-
-locals {
-  # Renderizar templates com senhas geradas
-  site_yml_rendered = templatefile("assets/site.yml.tftpl", {
-    ambari_db_password          = random_password.ambari_db.result
-    hive_db_password            = random_password.hive_db.result
-    ranger_db_password          = random_password.ranger_db.result
-    postgres_superuser_password = random_password.postgres_superuser.result
-    console_password            = random_password.console_user.result
-    hive_legacy_password        = random_password.hive_legacy.result
-  })
-
-  blueprint_json_rendered = templatefile("assets/blueprint.json.tftpl", {
-    hive_db_password   = random_password.hive_db.result
-    nifi_sensitive_key = random_password.nifi_sensitive_key.result
-    ranger_db_password = random_password.ranger_db.result
-  })
-
-  cluster_template_json_rendered = templatefile("assets/cluster-template.json.tftpl", {
-    ranger_db_password = random_password.ranger_db.result
-  })
-}
-
-# ============================================================================
-# Master Instance
-# ============================================================================
-
 # Master
 resource "oci_core_instance" "Master" {
   
@@ -59,9 +29,7 @@ resource "oci_core_instance" "Master" {
       hg1 = "master.cdp",
       hg2 = "node1.cdp",
       hg3 = "node2.cdp",
-      hg4 = "node3.cdp",
-      hive_legacy_password = random_password.hive_legacy.result,
-      console_password     = random_password.console_user.result
+      hg4 = "node3.cdp"
     })) : ""
   }
 
@@ -242,7 +210,7 @@ resource "null_resource" "upload_assets" {
   }
 
   provisioner "file" {
-    content     = local.blueprint_json_rendered
+    source      = "assets/blueprint.json"
     destination = "/tmp/blueprint.json"
   }
 
@@ -252,7 +220,7 @@ resource "null_resource" "upload_assets" {
   }
 
   provisioner "file" {
-    content     = local.cluster_template_json_rendered
+    source      = "assets/cluster-template.json"
     destination = "/tmp/cluster-template.json"
   }
 
@@ -262,7 +230,7 @@ resource "null_resource" "upload_assets" {
   }
 
   provisioner "file" {
-    content     = local.site_yml_rendered
+    source      = "assets/site.yml"
     destination = "/tmp/site.yml"
   }
 

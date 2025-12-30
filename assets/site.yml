@@ -198,10 +198,10 @@
 
   - name: Create PostgreSQL Users
     ansible.builtin.shell: |
-      sudo -u postgres psql -c "DO \$\$ BEGIN IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname='ambari') THEN CREATE ROLE ambari LOGIN PASSWORD '${ambari_db_password}'; END IF; END \$\$;"
-      sudo -u postgres psql -c "DO \$\$ BEGIN IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname='hive') THEN CREATE ROLE hive LOGIN PASSWORD '${hive_db_password}'; END IF; END \$\$;"
-      sudo -u postgres psql -c "DO \$\$ BEGIN IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname='rangeradmin') THEN CREATE ROLE rangeradmin LOGIN PASSWORD '${ranger_db_password}'; ELSE ALTER ROLE rangeradmin WITH PASSWORD '${ranger_db_password}'; END IF; END \$\$;"
-      sudo -u postgres psql -c "ALTER USER postgres WITH PASSWORD '${postgres_superuser_password}';"
+      sudo -u postgres psql -c "DO \$\$ BEGIN IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname='ambari') THEN CREATE ROLE ambari LOGIN PASSWORD 'Ambari123'; END IF; END \$\$;"
+      sudo -u postgres psql -c "DO \$\$ BEGIN IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname='hive') THEN CREATE ROLE hive LOGIN PASSWORD 'HiveUserMeta2025'; END IF; END \$\$;"
+      sudo -u postgres psql -c "DO \$\$ BEGIN IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname='rangeradmin') THEN CREATE ROLE rangeradmin LOGIN PASSWORD 'Ambari1234'; ELSE ALTER ROLE rangeradmin WITH PASSWORD 'Ambari1234'; END IF; END \$\$;"
+      sudo -u postgres psql -c "ALTER USER postgres WITH PASSWORD 'Ambari1234';"
     args:
       executable: /bin/bash
 
@@ -216,7 +216,7 @@
 
   - name: Populate Ambari Database Schema
     ansible.builtin.shell: |
-      export PGPASSWORD='${ambari_db_password}'
+      export PGPASSWORD='Ambari123'
       psql -h localhost -p 5432 -U ambari -d ambari -f /var/lib/ambari-server/resources/Ambari-DDL-Postgres-CREATE.sql
     args:
       executable: /bin/bash
@@ -234,7 +234,7 @@
       - "--databaseport=5432"
       - "--databasename=ambari"
       - "--databaseusername=ambari"
-      - "--databasepassword=${ambari_db_password}"
+      - "--databasepassword=Ambari123"
       - "--jdbc-db=postgres"
       - "--jdbc-driver=/usr/share/java/postgresql-jdbc.jar"
       - "-j"
@@ -267,7 +267,7 @@
 
   - name: Ensure Ambari password file exists
     ansible.builtin.copy:
-      content: "${ambari_db_password}"
+      content: "Ambari123"
       dest: /etc/ambari-server/conf/password.dat
       owner: root
       group: root
@@ -286,7 +286,7 @@
       append: yes
       state: present
   - name: Set console password
-    ansible.builtin.shell: echo 'console:${console_password}' | chpasswd
+    ansible.builtin.shell: echo 'console:1aB@2bC#' | chpasswd
 
   - name: Append environment variables to root .bashrc
     ansible.builtin.blockinfile:
@@ -326,7 +326,7 @@
         sed -i "s/^#port = 5432/port = 5432/" /var/lib/pgsql/data/postgresql.conf
         echo "host all hive 10.0.0.2/32 trust" | tee -a /var/lib/pgsql/data/pg_hba.conf
         sudo -u postgres psql -U postgres -c "CREATE DATABASE hive;" || true
-        sudo -u postgres psql -U postgres -c "CREATE USER hive WITH PASSWORD '${hive_legacy_password}';" || true
+        sudo -u postgres psql -U postgres -c "CREATE USER hive WITH PASSWORD 'hive';" || true
         sudo -u postgres psql -U postgres -c "GRANT ALL PRIVILEGES ON DATABASE hive TO hive;" || true
         systemctl restart postgresql
         yum install -y postgresql-jdbc.noarch

@@ -1,6 +1,6 @@
 {
   "blueprint": "odp-blueprint",
-  "default_password": "${ranger_db_password}",
+  "default_password": "Ambari1234",
   "host_groups": [
     {
       "name": "host_group_1",
