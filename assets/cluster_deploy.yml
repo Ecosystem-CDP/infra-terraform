@@ -95,9 +95,9 @@
           debug:
             msg: "All automated deployment attempts failed. Executing manual NiFi and Hive initialization..."
 
-        - name: Ensure Manual Service Init Script Exists
+        - name: Copy Manual Service Init Script to Master
           copy:
-            src: /root/manual_service_init.sh
+            src: manual_service_init.sh
             dest: /root/manual_service_init.sh
             mode: '0755'
           ignore_errors: yes

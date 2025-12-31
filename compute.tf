@@ -234,6 +234,16 @@ resource "null_resource" "upload_assets" {
     destination = "/tmp/site.yml"
   }
 
+  provisioner "file" {
+    source      = "assets/deploy_tasks.yml"
+    destination = "/tmp/deploy_tasks.yml"
+  }
+
+  provisioner "file" {
+    source      = "assets/manual_service_init.sh"
+    destination = "/tmp/manual_service_init.sh"
+  }
+
   provisioner "remote-exec" {
     inline = [
       "sudo mv /tmp/blueprint.json /root/blueprint.json",
@@ -241,7 +251,10 @@ resource "null_resource" "upload_assets" {
       "sudo mv /tmp/cluster-template.json /root/cluster-template.json",
       "sudo mv /tmp/cluster_deploy.yml /root/cluster_deploy.yml",
       "sudo mv /tmp/site.yml /root/site.yml",
-      "sudo chown root:root /root/blueprint.json /root/ODP-VDF.xml /root/cluster-template.json /root/cluster_deploy.yml /root/site.yml"
+      "sudo mv /tmp/deploy_tasks.yml /root/deploy_tasks.yml",
+      "sudo mv /tmp/manual_service_init.sh /root/manual_service_init.sh",
+      "sudo chmod +x /root/manual_service_init.sh",
+      "sudo chown root:root /root/blueprint.json /root/ODP-VDF.xml /root/cluster-template.json /root/cluster_deploy.yml /root/site.yml /root/deploy_tasks.yml /root/manual_service_init.sh"
     ]
   }
 }
