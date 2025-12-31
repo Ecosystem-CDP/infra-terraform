@@ -83,7 +83,41 @@
         shell: ambari-server start
         ignore_errors: yes
 
-      - name: Run Deployment Tasks (Final Attempt)
-        include_tasks: deploy_tasks.yml
-        vars:
-          deploy_retries: 120
+      - name: Third Deployment Attempt
+        block:
+        - name: Run Deployment Tasks (Final Attempt)
+          include_tasks: deploy_tasks.yml
+          vars:
+            deploy_retries: 120
+
+        rescue:
+        - name: Final Deployment Failed - Execute Manual Service Initialization
+          debug:
+            msg: "All automated deployment attempts failed. Executing manual NiFi and Hive initialization..."
+
+        - name: Copy Manual Service Init Script to Master
+          copy:
+            src: manual_service_init.sh
+            dest: /root/manual_service_init.sh
+            mode: '0755'
+          ignore_errors: yes
+
+        - name: Execute Manual Service Initialization
+          shell: /root/manual_service_init.sh
+          register: manual_init_result
+          args:
+            executable: /bin/bash
+
+        - name: Display Manual Initialization Output
+          debug:
+            var: manual_init_result.stdout_lines
+
+        - name: Display Manual Initialization Errors (if any)
+          debug:
+            var: manual_init_result.stderr_lines
+          when: manual_init_result.stderr_lines is defined and manual_init_result.stderr_lines | length > 0
+
+        - name: Fail if Manual Initialization Failed
+          fail:
+            msg: "Manual service initialization failed. Check logs above for details."
+          when: manual_init_result.rc != 0

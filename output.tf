@@ -4,5 +4,5 @@ output "generated_private_key_pem" {
 }
 
 output "comments" {
-  value = "The instalation of ambari will be finishied in about 10 minutes, and then there will be the instalation of the cluster. The URL for ambari is ${oci_core_instance.Master.public_ip}:8080. Try ssh to Master in case application does not load."
+  value = "A instalação final do cluster levará cerca de 03 horas e a interface do ambari ficará disponível em ${oci_core_instance.Master.public_ip}:8080."
 }

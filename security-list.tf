@@ -28,7 +28,7 @@ resource "oci_core_security_list" "Security-List-vcn-data-lake" {
     }
   }
 
-# HDFS
+# HDFS NameNode - Acesso do IP configurado
   ingress_security_rules {
     protocol    = "6"  
     source      = "${var.PublicIP}/32"
@@ -40,7 +40,19 @@ resource "oci_core_security_list" "Security-List-vcn-data-lake" {
     }
   }
 
-# YARN
+# HDFS NameNode - Acesso do cliente
+  ingress_security_rules {
+    protocol    = "6"  
+    source      = "${var.my_client_ip}/32"
+    source_type = "CIDR_BLOCK"
+    stateless   = "false"
+    tcp_options {
+      min = "50070"
+      max = "50070"
+    }
+  }
+
+# YARN ResourceManager - Acesso do IP configurado
 ingress_security_rules {
     protocol    = "6"  
     source      = "${var.PublicIP}/32"
@@ -52,7 +64,19 @@ ingress_security_rules {
     }
   }
 
-# MapReduce
+# YARN ResourceManager - Acesso do cliente
+ingress_security_rules {
+    protocol    = "6"  
+    source      = "${var.my_client_ip}/32"
+    source_type = "CIDR_BLOCK"
+    stateless   = "false"
+    tcp_options {
+      min = "8088"
+      max = "8088"
+    }
+  }
+
+# MapReduce Job History - Acesso do IP configurado
 ingress_security_rules {
     protocol    = "6"  
     source      = "${var.PublicIP}/32"
@@ -64,10 +88,22 @@ ingress_security_rules {
     }
   }
 
-# Ambari
+# MapReduce Job History - Acesso do cliente
 ingress_security_rules {
     protocol    = "6"  
-    source      = "0.0.0.0/0"
+    source      = "${var.my_client_ip}/32"
+    source_type = "CIDR_BLOCK"
+    stateless   = "false"
+    tcp_options {
+      min = "19888"
+      max = "19888"
+    }
+  }
+
+# Ambari Web UI - Acesso do cliente
+ingress_security_rules {
+    protocol    = "6"  
+    source      = "${var.my_client_ip}/32"
     source_type = "CIDR_BLOCK"
     stateless   = "false"
     tcp_options {
@@ -76,9 +112,8 @@ ingress_security_rules {
     }
   }
 
-# Spark
+# Spark History Server - Acesso do IP configurado
 ingress_security_rules {
-    
     protocol    = "6"  
     source      = "${var.PublicIP}/32"
     source_type = "CIDR_BLOCK"
@@ -88,11 +123,23 @@ ingress_security_rules {
       max = "18082"
     }
   }
- 
-# HTTP Nifi
+
+# Spark History Server - Acesso do cliente
 ingress_security_rules {
     protocol    = "6"  
-    source      = "${var.PublicIP}/32"
+    source      = "${var.my_client_ip}/32"
+    source_type = "CIDR_BLOCK"
+    stateless   = "false"
+    tcp_options {
+      min = "18082"
+      max = "18082"
+    }
+  }
+ 
+# NiFi Web UI - Acesso do cliente
+ingress_security_rules {
+    protocol    = "6"  
+    source      = "${var.my_client_ip}/32"
     source_type = "CIDR_BLOCK"
     stateless   = "false"
     tcp_options {
@@ -101,15 +148,51 @@ ingress_security_rules {
     }
   }
   
-# HTTPS Nifi
+# NiFi HTTPS - Acesso do cliente
 ingress_security_rules {
     protocol    = "6"  
-    source      = "${var.PublicIP}/32"
+    source      = "${var.my_client_ip}/32"
     source_type = "CIDR_BLOCK"
     stateless   = "false"
     tcp_options {
       min = "9091"
       max = "9091"
+    }
+  }
+
+# Ranger Admin Web UI - Acesso do cliente
+ingress_security_rules {
+    protocol    = "6"  
+    source      = "${var.my_client_ip}/32"
+    source_type = "CIDR_BLOCK"
+    stateless   = "false"
+    tcp_options {
+      min = "6080"
+      max = "6080"
+    }
+  }
+
+# HBase Master Web UI - Acesso do cliente
+ingress_security_rules {
+    protocol    = "6"  
+    source      = "${var.my_client_ip}/32"
+    source_type = "CIDR_BLOCK"
+    stateless   = "false"
+    tcp_options {
+      min = "16010"
+      max = "16010"
+    }
+  }
+
+# HiveServer2 JDBC - Acesso do cliente
+ingress_security_rules {
+    protocol    = "6"  
+    source      = "${var.my_client_ip}/32"
+    source_type = "CIDR_BLOCK"
+    stateless   = "false"
+    tcp_options {
+      min = "10000"
+      max = "10000"
     }
   }
 
