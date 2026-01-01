@@ -14,6 +14,7 @@ override.tf.json
 
 # IDE
 .idea/
+.idea
 *.iml
 *.iws
 .vscode/
@@ -44,4 +45,4 @@ logs/
 # Text
 *.md
 *.rst
-
+/assets/text
