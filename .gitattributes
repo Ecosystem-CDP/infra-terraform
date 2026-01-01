@@ -1,0 +1,12 @@
+# Force shell scripts to always use LF line endings
+*.sh text eol=lf
+
+# Force YAML files to use LF
+*.yml text eol=lf
+*.yaml text eol=lf
+
+# Force other text files to use LF
+*.json text eol=lf
+*.tf text eol=lf
+*.tftpl text eol=lf
+*.md text eol=lf
