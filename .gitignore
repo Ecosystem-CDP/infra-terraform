@@ -45,3 +45,7 @@ logs/
 *.md
 *.rst
 
+
+# Rendered configuration files with sensitive data
+.rendered/
+password-info.json

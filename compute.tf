@@ -195,7 +195,13 @@ resource "tls_private_key" "compute_ssh_key" {
 
 
 resource "null_resource" "upload_assets" {
-  depends_on = [oci_core_instance.Master]
+  depends_on = [
+    oci_core_instance.Master,
+    local_file.blueprint,
+    local_file.cluster_template,
+    local_file.site_yml,
+    local_file.manual_service_init
+  ]
 
   triggers = {
     master_ip = oci_core_instance.Master.public_ip
@@ -210,7 +216,7 @@ resource "null_resource" "upload_assets" {
   }
 
   provisioner "file" {
-    source      = "assets/blueprint.json"
+    source      = local_file.blueprint.filename
     destination = "/tmp/blueprint.json"
   }
 
@@ -220,7 +226,7 @@ resource "null_resource" "upload_assets" {
   }
 
   provisioner "file" {
-    source      = "assets/cluster-template.json"
+    source      = local_file.cluster_template.filename
     destination = "/tmp/cluster-template.json"
   }
 
@@ -230,7 +236,7 @@ resource "null_resource" "upload_assets" {
   }
 
   provisioner "file" {
-    source      = "assets/site.yml"
+    source      = local_file.site_yml.filename
     destination = "/tmp/site.yml"
   }
 
@@ -240,7 +246,7 @@ resource "null_resource" "upload_assets" {
   }
 
   provisioner "file" {
-    source      = "assets/manual_service_init.sh"
+    source      = local_file.manual_service_init.filename
     destination = "/tmp/manual_service_init.sh"
   }
 

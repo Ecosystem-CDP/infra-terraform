@@ -95,3 +95,20 @@ variable "my_client_ip" {
   type        = string
   # SEM default - força usuário a fornecer o IP ao criar a Stack
 }
+
+# Security - OCI Vault Integration
+variable "vault_id" {
+  description = "OCID do OCI Vault para armazenar senhas do cluster. Crie um vault em: Identity & Security > Vault"
+  type        = string
+}
+
+variable "vault_key_id" {
+  description = "OCID da chave de criptografia do Vault (deve ser SYMMETRIC). Obtenha em: Vault > Master Encryption Keys"
+  type        = string
+}
+
+variable "notification_email" {
+  description = "E-mail para receber notificação com as senhas geradas do cluster"
+  type        = string
+  default     = ""
+}
