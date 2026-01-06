@@ -22,10 +22,10 @@ graph TD
             SL[Security List]
             
             subgraph Subnet [Subnet Pública]
-                Master[Master Node<br/>(Ansible Controller)<br/>10.0.0.2]
-                Node1[Worker Node 1<br/>10.0.0.3]
-                Node2[Worker Node 2<br/>10.0.0.4]
-                Node3[Worker Node 3<br/>10.0.0.5]
+                Master["Master Node<br/>(Ansible Controller)<br/>10.0.0.2"]
+                Node1["Worker Node 1<br/>10.0.0.3"]
+                Node2["Worker Node 2<br/>10.0.0.4"]
+                Node3["Worker Node 3<br/>10.0.0.5"]
             end
         end
     end
