@@ -94,9 +94,9 @@ sequenceDiagram
 ### Variável: `my_client_ip`
 Para garantir a segurança do acesso às interfaces web (Ambari, NiFi, Zeppelin, etc.), é **obrigatório** fornecer o seu endereço IP público atual. O Terraform utilizará este IP para criar regras de Security List específicas, permitindo o tráfego apenas da sua origem.
 
-*   **Descrição**: IP público da sua máquina (notebook/desktop).
+*   **Descrição**: Lista de IPs públicos da sua máquina (notebook/desktop) separados por vírgula.
 *   **Como obter**: Acesse [https://api.ipify.org](https://api.ipify.org) ou [https://whatismyip.com](https://whatismyip.com).
-*   **Exemplo**: `203.0.113.15`
+*   **Exemplo**: `203.0.113.15, 198.51.100.12`
 
 ## Visão Geral dos Arquivos
 *   `compute.tf`: Definição das VMs e *User Data* (Cloud-Init).

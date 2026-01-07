@@ -91,7 +91,7 @@ variable "IKEversion" {
 # IMPORTANTE: Este é o IP do SEU notebook/computador, não da máquina OCI
 # Obtenha seu IP em: https://api.ipify.org ou https://whatismyip.com
 variable "my_client_ip" {
-  description = "IP público da sua máquina (notebook/desktop) que acessará as interfaces web. Obtenha em https://api.ipify.org"
+  description = "Lista de IPs públicos (separados por vírgula) que acessarão as interfaces web. Ex: 203.0.113.1, 198.51.100.2"
   type        = string
   # SEM default - força usuário a fornecer o IP ao criar a Stack
 }
