@@ -53,6 +53,10 @@ write_files:
   owner: root:root
   content: |
     #!/bin/bash
+    if ! command -v hdfs &> /dev/null; then
+        echo "HDFS command not found, skipping HDFS corrections."
+        exit 0
+    fi
     ambari-server stop
     sudo -u hdfs hdfs dfs -chown root:root /odp/apps/1.2.2.0-128/hbase
     sudo -u hdfs hdfs dfs -chmod 755 /odp/apps/1.2.2.0-128/hbase

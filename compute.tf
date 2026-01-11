@@ -1,6 +1,6 @@
 locals {
   blueprint_source = var.cluster_profile == "default" ? "assets/blueprint.json" : "assets/blueprint-${var.cluster_profile}/blueprint.json"
-  cluster_template_source = var.cluster_profile == "default" ? "assets/cluster-template.json" : "assets/blueprint-${var.cluster_profile}/clustertemplate.json"
+  cluster_template_source = var.cluster_profile == "default" ? "assets/cluster-template.json" : "assets/blueprint-${var.cluster_profile}/cluster-template.json"
 }
 
 # Master

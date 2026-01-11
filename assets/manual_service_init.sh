@@ -20,6 +20,16 @@ AMBARI_URL="http://${AMBARI_HOST}:${AMBARI_PORT}/api/v1"
 NIFI_NODE="node1.cdp"
 NIFI_SENSITIVE_KEY="Ambari1234567"
 
+# Function to check if service exists
+service_exists() {
+    local SERVICE=$1
+    if curl -u ${AMBARI_USER}:${AMBARI_PASS} -s ${AMBARI_URL}/clusters/${CLUSTER_NAME}/services/${SERVICE} | grep -q "ServiceInfo"; then
+        return 0
+    else
+        return 1
+    fi
+}
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -97,6 +107,8 @@ log_info "Manual NiFi and Hive Initialization"
 log_info "=========================================="
 
 # Step 1: Configure NiFi on node1.cdp using the WORKING approach
+# Step 1: Configure NiFi on node1.cdp using the WORKING approach
+if service_exists "NIFI"; then
 log_info "Step 1: Configuring NiFi on ${NIFI_NODE}..."
 
 # Generate a consistent 256-bit hex key (64 hex chars = 32 bytes) using SHA-256
@@ -248,39 +260,47 @@ else
     log_info "✓ NiFi is already in STARTED state"
 fi
 
-# Step 4: Start Hive service
-log_info "Step 4: Starting Hive service..."
+else
+    log_info "NIFI service not found. Skipping NiFi configuration."
+fi
 
-HIVE_STATE=$(get_service_state "HIVE")
-log_info "Current Hive state: ${HIVE_STATE}"
+if service_exists "HIVE"; then
+    # Step 4: Start Hive service
+    log_info "Step 4: Starting Hive service..."
 
-if [ "$HIVE_STATE" != "STARTED" ]; then
-    log_info "Sending START request to Hive..."
-    
-    RESPONSE=$(ambari_api PUT "/clusters/${CLUSTER_NAME}/services/HIVE" \
-        '{"RequestInfo":{"context":"Manual Hive Start"},"Body":{"ServiceInfo":{"state":"STARTED"}}}')
-    
-    REQUEST_ID=$(echo "$RESPONSE" | python3 -c "import sys, json; print(json.load(sys.stdin)['Requests']['id'])" 2>/dev/null || echo "")
-    
-    if [ -n "$REQUEST_ID" ]; then
-        log_info "Hive start request submitted (Request ID: ${REQUEST_ID})"
+    HIVE_STATE=$(get_service_state "HIVE")
+    log_info "Current Hive state: ${HIVE_STATE}"
+
+    if [ "$HIVE_STATE" != "STARTED" ]; then
+        log_info "Sending START request to Hive..."
         
-        # Wait for Hive to start
-        wait_for_service_state "HIVE" "STARTED" 120
+        RESPONSE=$(ambari_api PUT "/clusters/${CLUSTER_NAME}/services/HIVE" \
+            '{"RequestInfo":{"context":"Manual Hive Start"},"Body":{"ServiceInfo":{"state":"STARTED"}}}')
         
-        if [ $? -eq 0 ]; then
-            log_info "✓ Hive started successfully!"
+        REQUEST_ID=$(echo "$RESPONSE" | python3 -c "import sys, json; print(json.load(sys.stdin)['Requests']['id'])" 2>/dev/null || echo "")
+        
+        if [ -n "$REQUEST_ID" ]; then
+            log_info "Hive start request submitted (Request ID: ${REQUEST_ID})"
+            
+            # Wait for Hive to start
+            wait_for_service_state "HIVE" "STARTED" 120
+            
+            if [ $? -eq 0 ]; then
+                log_info "✓ Hive started successfully!"
+            else
+                log_error "✗ Hive failed to start within timeout"
+                log_warn "Check Hive logs on node1.cdp: /var/log/hive/"
+                exit 1
+            fi
         else
-            log_error "✗ Hive failed to start within timeout"
-            log_warn "Check Hive logs on node1.cdp: /var/log/hive/"
+            log_error "Failed to submit Hive start request"
             exit 1
         fi
     else
-        log_error "Failed to submit Hive start request"
-        exit 1
+        log_info "✓ Hive is already in STARTED state"
     fi
 else
-    log_info "✓ Hive is already in STARTED state"
+    log_info "HIVE service not found. Skipping Hive configuration."
 fi
 
 # Step 5: Final verification
