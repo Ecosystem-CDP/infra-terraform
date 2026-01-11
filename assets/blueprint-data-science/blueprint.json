@@ -2319,7 +2319,7 @@
         }
     ],
     "Blueprints": {
-        "blueprint_name": "cdp",
+        "blueprint_name": "odp-blueprint",
         "stack_name": "ODP",
         "stack_version": "1.2"
     }
