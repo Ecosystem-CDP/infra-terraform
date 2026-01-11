@@ -8,7 +8,7 @@
     blueprint_file: /root/blueprint.json
     vdf_file: /root/ODP-VDF.xml
     cluster_template_file: /root/cluster-template.json
-    cluster_name: odp-cluster
+    cluster_name: cdp-cluster
 
   tasks:
   - name: Attempt Deployment

@@ -38,6 +38,6 @@
         }
     ],
     "Clusters": {
-        "cluster_name": "cdp"
+        "cluster_name": "data"
     }
 }
