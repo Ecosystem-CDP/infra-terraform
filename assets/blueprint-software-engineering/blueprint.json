@@ -1415,6 +1415,9 @@
                 },
                 {
                     "name": "ZOOKEEPER_CLIENT"
+                },
+                {
+                    "name": "INFRA_SOLR"
                 }
             ],
             "cardinality": "1"

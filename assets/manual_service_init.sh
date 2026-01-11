@@ -7,6 +7,9 @@
 
 set -e
 
+# Error handling
+trap 'echo -e "${RED}[ERROR] Script failed on line $LINENO${NC}"; exit 1' ERR
+
 # Configuration
 AMBARI_USER="admin"
 AMBARI_PASS="admin"
