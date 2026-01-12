@@ -12,7 +12,7 @@
                     "javax.jdo.option.ConnectionURL": "jdbc:postgresql://master.cdp:5432/hive",
                     "javax.jdo.option.ConnectionDriverName": "org.postgresql.Driver",
                     "javax.jdo.option.ConnectionUserName": "hive",
-                    "javax.jdo.option.ConnectionPassword": "hive",
+                    "javax.jdo.option.ConnectionPassword": "HiveUserMeta2025",
                     "hive.metastore.db.type": "postgres",
                     "hive.server2.authentication": "NONE",
                     "hive.metastore.uris": "thrift://node1.cdp:9083",
@@ -27,7 +27,7 @@
                     "hive_database": "Existing PostgreSQL Database",
                     "hive_database_type": "postgres",
                     "hive_database_host": "master.cdp",
-                    "hive_database_password": "hive",
+                    "hive_database_password": "HiveUserMeta2025",
                     "hive_database_name": "hive",
                     "hive_ambari_database": "MySQL"
                 }
