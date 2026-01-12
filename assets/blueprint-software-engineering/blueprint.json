@@ -28,6 +28,7 @@
                     "hive_database_type": "postgres",
                     "hive_database_host": "master.cdp",
                     "hive_database_password": "HiveUserMeta2025",
+                    "hive_heapsize": "2048",
                     "hive_database_name": "hive",
                     "hive_ambari_database": "MySQL"
                 }
