@@ -243,6 +243,14 @@
     changed_when: ambari_setup.rc == 0
     failed_when: ambari_setup.rc not in [0]
 
+  - name: Hotfix ODP Stack (Fix Bash Syntax Error in hive_service.py)
+    ansible.builtin.shell: |
+      find /var/lib/ambari-server/resources/stacks -name hive_service.py -exec sed -i 's/| |/|/g' {} +
+      find /var/lib/ambari-server/resources/stacks -name hive_service.py -exec sed -i "s/grep -v '\[main\]/grep -v '\[main\]'/g" {} +
+    args:
+      executable: /bin/bash
+    ignore_errors: true
+
   - name: Ensure Ambari JDBC properties are set (workaround)
     ansible.builtin.lineinfile:
       path: /etc/ambari-server/conf/ambari.properties

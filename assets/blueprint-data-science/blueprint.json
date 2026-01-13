@@ -1693,7 +1693,7 @@
                     "ranger-atlas-plugin-enabled": "No",
                     "ranger-hbase-plugin-enabled": "No",
                     "ranger-hdfs-plugin-enabled": "Yes",
-                    "ranger-hive-plugin-enabled": "Yes",
+                    "ranger-hive-plugin-enabled": "No",
                     "ranger-kafka-plugin-enabled": "No",
                     "ranger-knox-plugin-enabled": "No",
                     "ranger-nifi-plugin-enabled": "No",
