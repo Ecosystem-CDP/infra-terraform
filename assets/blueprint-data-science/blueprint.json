@@ -16,7 +16,10 @@
                     "hive.metastore.db.type": "postgres",
                     "hive.server2.authentication": "NONE",
                     "hive.metastore.uris": "thrift://node1.cdp:9083",
-                    "hive.zookeeper.quorum": "master.cdp:2181,node1.cdp:2181,node2.cdp:2181"
+                    "hive.zookeeper.quorum": "master.cdp:2181,node1.cdp:2181,node2.cdp:2181",
+                    "hive.security.authorization.enabled": "false",
+                    "hive.security.authorization.manager": "org.apache.hadoop.hive.ql.security.authorization.plugin.sqlstd.SQLStdHiveAuthorizerFactory",
+                    "hive.security.authenticator.manager": "org.apache.hadoop.hive.ql.security.SessionStateUserAuthenticator"
                 }
             }
         },
@@ -31,6 +34,16 @@
                     "hive_heapsize": "2048",
                     "hive_database_name": "hive",
                     "hive_ambari_database": "MySQL"
+                }
+            }
+        },
+        {
+            "hiveserver2-site": {
+                "properties_attributes": {},
+                "properties": {
+                    "hive.security.authorization.enabled": "false",
+                    "hive.security.authorization.manager": "org.apache.hadoop.hive.ql.security.authorization.plugin.sqlstd.SQLStdHiveAuthorizerFactory",
+                    "hive.security.authenticator.manager": "org.apache.hadoop.hive.ql.security.SessionStateUserAuthenticator"
                 }
             }
         },
@@ -1062,6 +1075,81 @@
             }
         },
         {
+            "hive-env": {
+                "properties_attributes": {},
+                "properties": {
+                    "hive_database": "Existing PostgreSQL Database",
+                    "hive_database_name": "hive",
+                    "hive_database_type": "postgres",
+                    "hive_hostname": "master.cdp",
+                    "hive_log_dir": "/var/log/hive",
+                    "hive_metastore_port": "9083",
+                    "hive_pid_dir": "/var/run/hive",
+                    "hive_user": "hive",
+                    "hive_heapsize": "1024",
+                    "content": "\n export HADOOP_HEAPSIZE={{hive_heapsize}}\n export HADOOP_CLIENT_OPTS=\"-Xmx${HADOOP_HEAPSIZE}m $HADOOP_CLIENT_OPTS\"\n export HIVE_LOG_DIR={{hive_log_dir}}\n export HIVE_PID_DIR={{hive_pid_dir}}\n"
+                }
+            }
+        },
+        {
+            "hive-site": {
+                "properties_attributes": {},
+                "properties": {
+                    "javax.jdo.option.ConnectionDriverName": "org.postgresql.Driver",
+                    "javax.jdo.option.ConnectionURL": "jdbc:postgresql://master.cdp:5432/hive",
+                    "javax.jdo.option.ConnectionUserName": "hive",
+                    "javax.jdo.option.ConnectionPassword": "HiveUserMeta2025",
+                    "hive.metastore.warehouse.dir": "/warehouse/tablespace/managed/hive",
+                    "hive.server2.zookeeper.namespace": "hiveserver2",
+                    "hive.zookeeper.quorum": "master.cdp:2181,node1.cdp:2181,node2.cdp:2181",
+                    "hive.server2.transport.mode": "binary",
+                    "hive.server2.thrift.port": "10000",
+                    "hive.server2.support.dynamic.service.discovery": "true",
+                    "hive.metastore.uris": "thrift://node1.cdp:9083"
+                }
+            }
+        },
+        {
+            "ranger-hive-plugin-properties": {
+                "properties_attributes": {},
+                "properties": {
+                    "ranger-hive-plugin-enabled": "No"
+                }
+            }
+        },
+        {
+            "ranger-env": {
+                "properties": {
+                    "is_solrCloud_enabled": "true",
+                    "ranger-yarn-plugin-enabled": "false",
+                    "ranger_admin_password": "RangerAdminPassword2025",
+                    "ranger_admin_username": "admin",
+                    "ranger_group": "ranger",
+                    "ranger_user": "ranger",
+                    "ranger_usersync_user": "rangerusersync",
+                    "ranger_privelege_user_jdbc_url": "jdbc:postgresql://localhost:5432",
+                    "create_db_dbuser": "false",
+                    "ranger_solr_shards": "1",
+                    "ranger_solr_replication_factor": "1"
+                }
+            }
+        },
+        {
+            "ranger-admin-site": {
+                "properties": {
+                    "ranger.jpa.jdbc.driver": "org.postgresql.Driver",
+                    "ranger.jpa.jdbc.url": "jdbc:postgresql://master.cdp:5432/ranger",
+                    "ranger.jpa.jdbc.user": "rangeradmin",
+                    "ranger.jpa.jdbc.password": "RangerAdminPassword2025",
+                    "ranger.externalurl": "http://master.cdp:6080",
+                    "ranger.service.http.enabled": "true",
+                    "ranger.authentication.method": "NONE",
+                    "ranger.solr.audit.user": "ranger",
+                    "ranger.solr.audit.user.password": "ranger"
+                }
+            }
+        },
+        {
             "hivemetastore-site": {
                 "properties_attributes": {},
                 "properties": {
@@ -1161,7 +1249,8 @@
                     "external_ranger_admin_password": "",
                     "external_ranger_admin_username": "",
                     "jdbc.driverClassName": "org.apache.hive.jdbc.HiveDriver",
-                    "policy_user": "ambari-qa"
+                    "policy_user": "ambari-qa",
+                    "ranger-hive-plugin-enabled": "No"
                 }
             }
         },
@@ -1184,6 +1273,8 @@
                 "properties": {
                     "ranger.plugin.hive.policy.cache.dir": "/etc/ranger/{{repo_name}}/policycache",
                     "ranger.plugin.hive.policy.pollIntervalMs": "30000",
+                    "ranger.plugin.hive.policy.rest.client.connection.timeoutMs": "120000",
+                    "ranger.plugin.hive.policy.rest.client.read.timeoutMs": "30000",
                     "ranger.plugin.hive.policy.rest.ssl.config.file": "{{ranger_hive_ssl_config_file}}",
                     "ranger.plugin.hive.policy.rest.url": "http://master.cdp:6080",
                     "ranger.plugin.hive.policy.source.impl": "org.apache.ranger.admin.client.RangerAdminRESTClient",
