@@ -3,7 +3,7 @@
   "default_password": "Ambari1234",
   "host_groups": [
     {
-      "name": "host_group_1",
+      "name": "host_group_0",
       "hosts": [
         {
           "fqdn": "master.cdp"
@@ -11,7 +11,7 @@
       ]
     },
     {
-      "name": "host_group_2",
+      "name": "host_group_1",
       "hosts": [
         {
           "fqdn": "node1.cdp"
@@ -19,7 +19,7 @@
       ]
     },
     {
-      "name": "host_group_3",
+      "name": "host_group_2",
       "hosts": [
         {
           "fqdn": "node2.cdp"
@@ -27,7 +27,7 @@
       ]
     },
     {
-      "name": "host_group_4",
+      "name": "host_group_3",
       "hosts": [
         {
           "fqdn": "node3.cdp"

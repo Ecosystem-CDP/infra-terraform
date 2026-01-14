@@ -2801,7 +2801,7 @@
                 }
             ],
             "configurations": [],
-            "name": "host_group_2",
+            "name": "host_group_1",
             "cardinality": "1"
         },
         {
@@ -2880,7 +2880,7 @@
                 }
             ],
             "configurations": [],
-            "name": "host_group_1",
+            "name": "host_group_0",
             "cardinality": "1"
         },
         {
@@ -2932,7 +2932,7 @@
                 }
             ],
             "configurations": [],
-            "name": "host_group_4",
+            "name": "host_group_3",
             "cardinality": "1"
         },
         {
@@ -2981,7 +2981,7 @@
                 }
             ],
             "configurations": [],
-            "name": "host_group_3",
+            "name": "host_group_2",
             "cardinality": "1"
         }
     ],

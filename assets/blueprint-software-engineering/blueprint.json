@@ -1,6 +1,40 @@
 {
     "configurations": [
         {
+            "hive-site": {
+                "properties_attributes": {
+                    "hidden": {
+                        "javax.jdo.option.ConnectionPassword": "HIVE_CLIENT,CONFIG_DOWNLOAD"
+                    }
+                },
+                "properties": {
+                    "hive.metastore.warehouse.dir": "/warehouse/tablespace/managed/hive",
+                    "javax.jdo.option.ConnectionURL": "jdbc:postgresql://master.cdp:5432/hive",
+                    "javax.jdo.option.ConnectionDriverName": "org.postgresql.Driver",
+                    "javax.jdo.option.ConnectionUserName": "hive",
+                    "javax.jdo.option.ConnectionPassword": "HiveUserMeta2025",
+                    "hive.metastore.db.type": "postgres",
+                    "hive.server2.authentication": "NONE",
+                    "hive.metastore.uris": "thrift://node1.cdp:9083",
+                    "hive.zookeeper.quorum": "master.cdp:2181,node1.cdp:2181,node2.cdp:2181"
+                }
+            }
+        },
+        {
+            "hive-env": {
+                "properties_attributes": {},
+                "properties": {
+                    "hive_database": "Existing PostgreSQL Database",
+                    "hive_database_type": "postgres",
+                    "hive_database_host": "master.cdp",
+                    "hive_database_password": "HiveUserMeta2025",
+                    "hive_heapsize": "2048",
+                    "hive_database_name": "hive",
+                    "hive_ambari_database": "MySQL"
+                }
+            }
+        },
+        {
             "cluster-env": {
                 "properties_attributes": {},
                 "properties": {
@@ -1415,6 +1449,9 @@
                 },
                 {
                     "name": "ZOOKEEPER_CLIENT"
+                },
+                {
+                    "name": "INFRA_SOLR"
                 }
             ],
             "cardinality": "1"
@@ -1523,7 +1560,7 @@
         }
     ],
     "Blueprints": {
-        "blueprint_name": "dev",
+        "blueprint_name": "odp-blueprint",
         "stack_name": "ODP",
         "stack_version": "1.2"
     }

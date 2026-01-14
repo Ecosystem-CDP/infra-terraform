@@ -1,5 +1,5 @@
 {
-    "blueprint": "cdp",
+    "blueprint": "odp-blueprint",
     "config_recommendation_strategy": "NEVER_APPLY",
     "provision_action": "INSTALL_AND_START",
     "configurations": [],
@@ -38,6 +38,6 @@
         }
     ],
     "Clusters": {
-        "cluster_name": "cdp"
+        "cluster_name": "cdp-cluster"
     }
 }

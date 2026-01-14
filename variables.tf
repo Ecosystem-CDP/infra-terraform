@@ -45,9 +45,16 @@ variable "instance_visibility_master" {
   default = "Public"
 }
 
-variable "is_pv_encryption_in_transit_enabled" {
-  default = false
+
+variable "cluster_profile" {
+  description = "Profile for the cluster deployment (default, data-science, software-engineering)"
+  default     = "default"
+  validation {
+    condition     = contains(["default", "data-science", "software-engineering"], var.cluster_profile)
+    error_message = "The cluster_profile must be one of: default, data-science, software-engineering."
+  }
 }
+
 
 # Compute Worker
 
