@@ -19,7 +19,8 @@
                     "hive.zookeeper.quorum": "master.cdp:2181,node1.cdp:2181,node2.cdp:2181",
                     "hive.security.authorization.enabled": "false",
                     "hive.security.authorization.manager": "org.apache.hadoop.hive.ql.security.authorization.plugin.sqlstd.SQLStdHiveAuthorizerFactory",
-                    "hive.security.authenticator.manager": "org.apache.hadoop.hive.ql.security.SessionStateUserAuthenticator"
+                    "hive.security.authenticator.manager": "org.apache.hadoop.hive.ql.security.SessionStateUserAuthenticator",
+                    "hive.security.metastore.authorization.manager": "org.apache.hadoop.hive.ql.security.authorization.StorageBasedAuthorizationProvider"
                 }
             }
         },
@@ -1184,7 +1185,7 @@
                     "hive.conf.restricted.list": "hive.security.authenticator.manager,hive.security.authorization.manager,hive.security.metastore.authorization.manager,hive.security.metastore.authenticator.manager,hive.users.in.admin.role,hive.server2.xsrf.filter.enabled,hive.security.authorization.enabled",
                     "hive.metastore.metrics.enabled": "true",
                     "hive.security.authenticator.manager": "org.apache.hadoop.hive.ql.security.SessionStateUserAuthenticator",
-                    "hive.security.authorization.enabled": "true",
+                    "hive.security.authorization.enabled": "false",
                     "hive.security.authorization.manager": "org.apache.hadoop.hive.ql.security.authorization.plugin.sqlstd.SQLStdHiveAuthorizerFactory",
                     "hive.server2.metrics.enabled": "true",
                     "hive.service.metrics.hadoop2.component": "hiveserver2",
