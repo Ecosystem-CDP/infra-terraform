@@ -62,6 +62,13 @@ write_files:
     sudo -u hdfs hdfs dfs -chmod 755 /odp/apps/1.2.2.0-128/hbase
     sudo -u hdfs hdfs dfs -put /var/lib/ambari-agent/tmp/yarn-ats/1.2.2.0-128/hbase.tar.gz /odp/apps/1.2.2.0-128/hbase/
     sudo -u hdfs hdfs dfs -chmod 555 /odp/apps/1.2.2.0-128/hbase
+
+    # Add ACL for dr.who user to access Hive warehouse
+    # Apply to existing files/directories
+    sudo -u hdfs hdfs dfs -setfacl -R -m user:dr.who:r-x /warehouse/tablespace/managed/hive 2>/dev/null || true
+    # Apply default ACL for future files/directories
+    sudo -u hdfs hdfs dfs -setfacl -R -m default:user:dr.who:r-x /warehouse/tablespace/managed/hive 2>/dev/null || true
+
     ambari-server restart
 
 - path: /root/hivesetup.sh
