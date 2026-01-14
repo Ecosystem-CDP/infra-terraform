@@ -35,18 +35,6 @@ resource "oci_core_security_list" "Security-List-vcn-data-lake" {
     }
   }
 
-# HDFS NameNode - Acesso do IP configurado (PublicIP)
-  ingress_security_rules {
-    protocol    = "6"  
-    source      = "${var.PublicIP}/32"
-    source_type = "CIDR_BLOCK"
-    stateless   = "false"
-    tcp_options {
-      min = "50070"
-      max = "50070"
-    }
-  }
-
 # HDFS NameNode - Acesso do cliente (Multi Acesso)
   dynamic "ingress_security_rules" {
     for_each = local.client_ips
@@ -62,18 +50,6 @@ resource "oci_core_security_list" "Security-List-vcn-data-lake" {
     }
   }
 
-# YARN ResourceManager - Acesso do IP configurado
- ingress_security_rules {
-    protocol    = "6"  
-    source      = "${var.PublicIP}/32"
-    source_type = "CIDR_BLOCK"
-    stateless   = "false"
-    tcp_options {
-      min = "8088"
-      max = "8088"
-    }
-  }
-
 # YARN ResourceManager - Acesso do cliente (Multi Acesso)
   dynamic "ingress_security_rules" {
     for_each = local.client_ips
@@ -86,18 +62,6 @@ resource "oci_core_security_list" "Security-List-vcn-data-lake" {
         min = "8088"
         max = "8088"
       }
-    }
-  }
-
-# MapReduce Job History - Acesso do IP configurado
- ingress_security_rules {
-    protocol    = "6"  
-    source      = "${var.PublicIP}/32"
-    source_type = "CIDR_BLOCK"
-    stateless   = "false"
-    tcp_options {
-      min = "19888"
-      max = "19888"
     }
   }
 
@@ -128,18 +92,6 @@ resource "oci_core_security_list" "Security-List-vcn-data-lake" {
         min = "8080"
         max = "8080"
       }
-    }
-  }
-
-# Spark History Server - Acesso do IP configurado
-  ingress_security_rules {
-    protocol    = "6"  
-    source      = "${var.PublicIP}/32"
-    source_type = "CIDR_BLOCK"
-    stateless   = "false"
-    tcp_options {
-      min = "18082"
-      max = "18082"
     }
   }
 
