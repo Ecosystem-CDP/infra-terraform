@@ -1185,7 +1185,7 @@
                     "hive.metastore.metrics.enabled": "true",
                     "hive.security.authenticator.manager": "org.apache.hadoop.hive.ql.security.SessionStateUserAuthenticator",
                     "hive.security.authorization.enabled": "true",
-                    "hive.security.authorization.manager": "org.apache.ranger.authorization.hive.authorizer.RangerHiveAuthorizerFactory",
+                    "hive.security.authorization.manager": "org.apache.hadoop.hive.ql.security.authorization.plugin.sqlstd.SQLStdHiveAuthorizerFactory",
                     "hive.server2.metrics.enabled": "true",
                     "hive.service.metrics.hadoop2.component": "hiveserver2",
                     "hive.service.metrics.reporter": "HADOOP2"
