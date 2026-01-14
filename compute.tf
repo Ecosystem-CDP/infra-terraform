@@ -1,3 +1,8 @@
+locals {
+  blueprint_source = var.cluster_profile == "default" ? "assets/blueprint.json" : "assets/blueprint-${var.cluster_profile}/blueprint.json"
+  cluster_template_source = var.cluster_profile == "default" ? "assets/cluster-template.json" : "assets/blueprint-${var.cluster_profile}/cluster-template.json"
+}
+
 # Master
 resource "oci_core_instance" "Master" {
   
@@ -210,7 +215,7 @@ resource "null_resource" "upload_assets" {
   }
 
   provisioner "file" {
-    source      = "assets/blueprint.json"
+    source      = local.blueprint_source
     destination = "/tmp/blueprint.json"
   }
 
@@ -220,7 +225,7 @@ resource "null_resource" "upload_assets" {
   }
 
   provisioner "file" {
-    source      = "assets/cluster-template.json"
+    source      = local.cluster_template_source
     destination = "/tmp/cluster-template.json"
   }
 

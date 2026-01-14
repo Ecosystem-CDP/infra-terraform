@@ -53,11 +53,22 @@ write_files:
   owner: root:root
   content: |
     #!/bin/bash
+    if ! command -v hdfs &> /dev/null; then
+        echo "HDFS command not found, skipping HDFS corrections."
+        exit 0
+    fi
     ambari-server stop
     sudo -u hdfs hdfs dfs -chown root:root /odp/apps/1.2.2.0-128/hbase
     sudo -u hdfs hdfs dfs -chmod 755 /odp/apps/1.2.2.0-128/hbase
     sudo -u hdfs hdfs dfs -put /var/lib/ambari-agent/tmp/yarn-ats/1.2.2.0-128/hbase.tar.gz /odp/apps/1.2.2.0-128/hbase/
     sudo -u hdfs hdfs dfs -chmod 555 /odp/apps/1.2.2.0-128/hbase
+
+    # Add ACL for dr.who user to access Hive warehouse
+    # Apply to existing files/directories
+    sudo -u hdfs hdfs dfs -setfacl -R -m user:dr.who:r-x /warehouse/tablespace/managed/hive 2>/dev/null || true
+    # Apply default ACL for future files/directories
+    sudo -u hdfs hdfs dfs -setfacl -R -m default:user:dr.who:r-x /warehouse/tablespace/managed/hive 2>/dev/null || true
+
     ambari-server restart
 
 - path: /root/hivesetup.sh
@@ -69,8 +80,11 @@ write_files:
     sed -i "s/^#port = 5432/port = 5432/" /var/lib/pgsql/data/postgresql.conf
     echo "host all hive 10.0.0.2/32 trust" | tee -a /var/lib/pgsql/data/pg_hba.conf
     sudo -u postgres psql -U postgres -c "CREATE DATABASE hive;" || true
-    sudo -u postgres psql -U postgres -c "CREATE USER hive WITH PASSWORD 'hive';" || true
+    sudo -u postgres psql -U postgres -c "CREATE USER hive WITH PASSWORD 'HiveUserMeta2025';" || true
     sudo -u postgres psql -U postgres -c "GRANT ALL PRIVILEGES ON DATABASE hive TO hive;" || true
+    sudo -u postgres psql -U postgres -c "CREATE DATABASE ranger;" || true
+    sudo -u postgres psql -U postgres -c "CREATE USER rangeradmin WITH PASSWORD 'RangerAdminPassword2025';" || true
+    sudo -u postgres psql -U postgres -c "GRANT ALL PRIVILEGES ON DATABASE ranger TO rangeradmin;" || true
     systemctl restart postgresql
     yum install -y postgresql-jdbc.noarch
     ambari-server setup -j /usr/lib/jvm/java-1.8.0-openjdk --jdbc-db=postgres --jdbc-driver=/usr/share/java/postgresql-jdbc.jar
