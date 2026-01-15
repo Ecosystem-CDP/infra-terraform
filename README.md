@@ -1,6 +1,8 @@
 # CDP Infrastructure on OCI (Terraform + Ansible)
 
 **Documentação Principal:** [https://github.com/Ecosystem-CDP/docs/tree/main](https://github.com/Ecosystem-CDP/docs/tree/main)
+**Vídeo demonstrativo do processo de Deploy:** [Tutorial para deploy de um Cluster Hadoop na OCI
+](https://youtu.be/MbpKeu-Jw_Y)
 
 Este projeto automatiza o deploy completo de um cluster Hadoop em nuvem, utilizando a Oracle Cloud Infrastructure (OCI). O objetivo é fornecer uma "Stack" pronta para uso que provisiona um Data Lake completo baseado em metadados (Blueprints), utilizando instâncias ARM (Ampere) com Oracle Linux 9.
 
